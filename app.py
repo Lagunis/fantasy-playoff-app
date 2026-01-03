@@ -7,7 +7,6 @@ import os
 st.set_page_config(layout="wide", page_title="Champions League")
 
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
-# Example: "https://raw.githubusercontent.com/YourName/Repo/main/football_intro.png"
 BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
 # --- 1. SECURITY & DATABASE SETUP ---
@@ -32,8 +31,8 @@ def set_bg_from_url(url):
     st.markdown(
          f"""
          <style>
-         /* IMPORT 'ROCK SALT' (Thinner, Scrawled Brush Look) */
-         @import url('https://fonts.googleapis.com/css2?family=Rock+Salt&display=swap');
+         /* IMPORT 'NANUM BRUSH SCRIPT' (The LeviBrush Alternative) */
+         @import url('https://fonts.googleapis.com/css2?family=Nanum+Brush+Script&display=swap');
          @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap');
 
          .stApp {{
@@ -46,25 +45,25 @@ def set_bg_from_url(url):
          
          header {{visibility: hidden;}}
          
-         /* THE NEW TITLE CLASS */
+         /* THE TITLE CLASS */
          .spartan-blood {{
-             font-family: 'Rock Salt', cursive;
-             font-size: 80px !important;
+             font-family: 'Nanum Brush Script', cursive;
+             font-size: 100px !important; /* Increased size because this font is naturally thinner */
              color: #8B0000; /* Blood Red */
-             text-shadow: 4px 4px 0px #000000; /* Sharp shadow */
-             line-height: 1.2;
-             margin-bottom: 10px;
-             transform: rotate(-2deg); /* Slight tilt for aggression */
+             text-shadow: 3px 3px 0px #000000;
+             line-height: 1.0;
+             margin-bottom: 0px;
+             transform: rotate(-3deg); /* Slightly more tilt for that hasty brush look */
          }}
          
          .spartan-sub {{
              font-family: 'Cinzel', serif;
              font-size: 30px !important;
              color: #e0e0e0;
-             text-shadow: 3px 3px 5px #000000;
-             letter-spacing: 6px;
+             text-shadow: 2px 2px 4px #000000;
+             letter-spacing: 5px;
              font-weight: 700;
-             margin-top: -10px;
+             margin-top: -5px;
          }}
 
          div[data-testid="stTabs"] {{
