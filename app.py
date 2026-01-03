@@ -3,9 +3,12 @@ import pandas as pd
 import gspread
 import hashlib
 import os
-import base64
 
 st.set_page_config(layout="wide", page_title="Champions League")
+
+# --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
+# 1. Go to your GitHub Repo -> Click football_intro.png -> Right Click "Download" -> Copy Link
+BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
@@ -18,45 +21,35 @@ def check_hashes(password, hashed_text):
 
 def get_connection():
     if "gcp_service_account" not in st.secrets:
-        st.error("Secrets not found!")
+        st.error("Secrets not found! Check your Streamlit Settings.")
         return None
     creds = st.secrets["gcp_service_account"]
     gc = gspread.service_account_from_dict(creds)
     return gc
 
-# --- 2. CSS & STYLING (THE 300 THEME) ---
-def get_base64_of_bin_file(bin_file):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
-
-def set_bg_hack(main_bg):
-    main_bg_ext = "png"
+# --- 2. CSS & STYLING ---
+def set_bg_from_url(url):
     st.markdown(
          f"""
          <style>
-         /* IMPORT '300' STYLE FONT (Rubik Wet Paint) */
          @import url('https://fonts.googleapis.com/css2?family=Rubik+Wet+Paint&display=swap');
-         
-         /* Secondary Font for subtitles (Cinzel) to keep it readable but epic */
          @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap');
 
          .stApp {{
-             background: url(data:image/{main_bg_ext};base64,{base64.b64encode(open(main_bg, "rb").read()).decode()});
+             background-image: url("{url}");
              background-size: cover;
+             background-position: center;
              background-repeat: no-repeat;
              background-attachment: fixed;
-             background-position: center;
          }}
          
          header {{visibility: hidden;}}
          
-         /* THE 300 TITLE CLASS */
          .spartan-blood {{
              font-family: 'Rubik Wet Paint', cursive;
              font-size: 90px !important;
-             color: #8B0000; /* Blood Red */
-             text-shadow: 5px 5px 0px #000000; /* Hard black shadow */
+             color: #8B0000;
+             text-shadow: 5px 5px 0px #000000;
              line-height: 1.0;
              margin-bottom: 0px;
          }}
@@ -64,37 +57,30 @@ def set_bg_hack(main_bg):
          .spartan-sub {{
              font-family: 'Cinzel', serif;
              font-size: 35px !important;
-             color: #e0e0e0; /* Bone White */
+             color: #e0e0e0;
              text-shadow: 3px 3px 5px #000000;
              letter-spacing: 4px;
              font-weight: 700;
              margin-top: -10px;
          }}
 
-         /* LOGIN CARD STYLING */
          div[data-testid="stTabs"] {{
              background-color: rgba(0, 0, 0, 0.85);
              border: 2px solid #8B0000;
              border-radius: 10px;
              padding: 20px;
-             box-shadow: 0 0 30px rgba(139, 0, 0, 0.4); /* Red Glow */
+             box-shadow: 0 0 30px rgba(139, 0, 0, 0.4);
              color: white;
          }}
          
-         /* Expander Styling (The Scroll) */
          div[data-testid="stExpander"] {{
              background-color: rgba(20, 20, 20, 0.95);
              border: 1px solid #8B0000;
              color: white;
          }}
          
-         /* Input fields */
-         input {{
-             color: black !important;
-         }}
-         label {{
-             color: #e0e0e0 !important; /* Bone white labels */
-         }}
+         input {{ color: black !important; }}
+         label {{ color: #e0e0e0 !important; }}
          </style>
          """,
          unsafe_allow_html=True
@@ -115,26 +101,32 @@ def clear_bg():
 
 # --- 3. AUTH FUNCTIONS ---
 def create_user(email, password, manager_name):
-    gc = get_connection()
-    sh = gc.open("fantasy_league_db")
-    worksheet = sh.worksheet("users")
-    df = pd.DataFrame(worksheet.get_all_records())
-    if not df.empty and email in df['email'].values:
-        return False, "Email already registered."
-    new_user = [email, make_hashes(password), manager_name]
-    worksheet.append_row(new_user)
-    return True, "Account created!"
+    try:
+        gc = get_connection()
+        sh = gc.open("fantasy_league_db")
+        worksheet = sh.worksheet("users")
+        df = pd.DataFrame(worksheet.get_all_records())
+        if not df.empty and email in df['email'].values:
+            return False, "Email already registered."
+        new_user = [email, make_hashes(password), manager_name]
+        worksheet.append_row(new_user)
+        return True, "Account created!"
+    except Exception as e:
+        return False, f"Database Error: {e}"
 
 def verify_login(email, password):
-    gc = get_connection()
-    sh = gc.open("fantasy_league_db")
-    worksheet = sh.worksheet("users")
-    df = pd.DataFrame(worksheet.get_all_records())
-    if df.empty: return False, "No users found."
-    if email in df['email'].values:
-        user_row = df[df['email'] == email].iloc[0]
-        if check_hashes(password, user_row['password']):
-            return True, user_row['manager_name']
+    try:
+        gc = get_connection()
+        sh = gc.open("fantasy_league_db")
+        worksheet = sh.worksheet("users")
+        df = pd.DataFrame(worksheet.get_all_records())
+        if df.empty: return False, "No users found."
+        if email in df['email'].values:
+            user_row = df[df['email'] == email].iloc[0]
+            if check_hashes(password, user_row['password']):
+                return True, user_row['manager_name']
+    except Exception as e:
+        return False, f"Login Error: {e}"
     return False, "Incorrect email or password."
 
 # --- 4. SESSION STATE ---
@@ -144,16 +136,13 @@ if 'my_roster' not in st.session_state: st.session_state['my_roster'] = []
 
 # --- 5. LANDING PAGE ---
 def login_page():
-    if os.path.exists("football_intro.jpg"): set_bg_hack("football_intro.jpg")
-    elif os.path.exists("football_intro.png"): set_bg_hack("football_intro.png")
-    else: st.warning("Upload 'football_intro.jpg' to GitHub!")
+    # Load background from URL
+    set_bg_from_url(BACKGROUND_IMAGE_URL)
 
-    # TOP LAYOUT: Title (Left) vs Login (Right)
     col_title, col_space, col_login = st.columns([4, 1, 2])
     
     with col_title:
         st.markdown('<br>', unsafe_allow_html=True)
-        # 300 STYLE TITLE
         st.markdown(
             '''
             <div style="text-align: left;">
@@ -192,30 +181,19 @@ def login_page():
                 else:
                     st.warning("Missing info")
 
-    # BOTTOM LAYOUT: Rules Expander
     st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
-    
     c_left, c_center, c_right = st.columns([1, 2, 1])
     with c_center:
-        # We start it collapsed (expanded=False) so it opens up when clicked
         with st.expander("📜 RULES OF THE ARENA (Click to Unroll)", expanded=False):
             st.markdown("""
             **The Mission:** Survive the gauntlet. Draft the highest-scoring team across all 4 rounds.
-            
             **The Roster:** 10 Warriors (1 QB, 2 RB, 2 WR, 1 TE, 2 FLEX, 1 K, 1 DEF).
-            
-            **The Multipliers 🚀:**
-            * **Week 1:** 100% Strength
-            * **Week 2 Streak:** 110% Bonus
-            * **Week 3 Streak:** 125% Bonus
-            * **Week 4 Streak:** 150% Bonus
-            *(Must play the same warrior consecutively to earn bonuses)*
+            **The Multipliers 🚀:** Week 1: 100% | Week 2: 110% | Week 3: 125% | Week 4: 150% (Must play consecutively).
             """)
 
-# --- 6. MAIN APP (War Room) ---
+# --- 6. MAIN APP ---
 def main_game_app():
-    clear_bg() 
-    
+    clear_bg()
     owner_name = st.session_state['manager_name']
 
     def get_sheet():
@@ -388,5 +366,6 @@ def main_game_app():
                             st.success(f"Week {current_week} Saved!")
             else: st.button("Roster Invalid", disabled=True, use_container_width=True)
 
+# --- 7. ROUTER ---
 if st.session_state['logged_in']: main_game_app()
 else: login_page()
