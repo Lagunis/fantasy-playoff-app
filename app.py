@@ -48,7 +48,7 @@ def set_bg_from_url(url):
          /* THE TITLE CLASS */
          .spartan-blood {{
              font-family: 'Nanum Brush Script', cursive;
-             font-size: 100px !important; /* Increased size because this font is naturally thinner */
+             font-size: 130px !important; /* Increased size because this font is naturally thinner */
              color: #8B0000; /* Blood Red */
              text-shadow: 3px 3px 0px #000000;
              line-height: 1.0;
@@ -370,3 +370,4 @@ def main_game_app():
 # --- 7. ROUTER ---
 if st.session_state['logged_in']: main_game_app()
 else: login_page()
+
