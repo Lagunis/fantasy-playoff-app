@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import gspread
 import hashlib
-import os # To check for the image file
+import os
+import base64 # Required for the background image
 
 st.set_page_config(layout="wide", page_title="Playoff Fantasy")
 
@@ -23,7 +24,76 @@ def get_connection():
     gc = gspread.service_account_from_dict(creds)
     return gc
 
-# --- 2. AUTHENTICATION FUNCTIONS ---
+# --- 2. CSS & BACKGROUND HELPERS ---
+def get_base64_of_bin_file(bin_file):
+    with open(bin_file, 'rb') as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+def set_bg_hack(main_bg):
+    '''
+    A function to unpack an image from disk and set as the full background.
+    '''
+    # set bg name
+    main_bg_ext = "png"
+    
+    st.markdown(
+         f"""
+         <style>
+         .stApp {{
+             background: url(data:image/{main_bg_ext};base64,{base64.b64encode(open(main_bg, "rb").read()).decode()});
+             background-size: cover;
+             background-repeat: no-repeat;
+             background-attachment: fixed;
+             background-position: center;
+         }}
+         /* Make the header transparent */
+         header {{visibility: hidden;}}
+         
+         /* Create a 'Glass' effect for the login container */
+         div[data-testid="stExpander"] {{
+             background-color: rgba(255, 255, 255, 0.9); /* White with 10% transparency */
+             border-radius: 15px;
+             padding: 20px;
+             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+         }}
+         
+         /* Improve tab visibility */
+         .stTabs [data-baseweb="tab-list"] {{
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 10px;
+         }}
+         
+         /* Make titles pop against background */
+         h1, h2, h3 {{
+             text-shadow: 2px 2px 4px #000000;
+             color: white !important;
+         }}
+         </style>
+         """,
+         unsafe_allow_html=True
+     )
+
+def clear_bg():
+    # Resets the background for the main app so it's readable
+    st.markdown(
+        """
+        <style>
+        .stApp {
+            background: none;
+            background-color: #0e1117; /* Default dark mode color */
+        }
+        h1, h2, h3 {
+             text-shadow: none;
+             color: inherit !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+# --- 3. AUTHENTICATION FUNCTIONS ---
 def create_user(email, password, manager_name):
     gc = get_connection()
     sh = gc.open("fantasy_league_db")
@@ -52,7 +122,7 @@ def verify_login(email, password):
             
     return False, "Incorrect email or password."
 
-# --- 3. SESSION STATE ---
+# --- 4. SESSION STATE ---
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
 if 'manager_name' not in st.session_state:
@@ -60,63 +130,54 @@ if 'manager_name' not in st.session_state:
 if 'my_roster' not in st.session_state:
     st.session_state['my_roster'] = []
 
-# --- 4. LANDING PAGE ---
+# --- 5. LANDING PAGE ---
 def login_page():
+    # 1. APPLY BACKGROUND
+    # Check for your local file
+    if os.path.exists("football_intro.jpg"):
+        set_bg_hack("football_intro.jpg")
+    elif os.path.exists("football_intro.png"):
+        set_bg_hack("football_intro.png")
+    else:
+        # Fallback if file missing (optional: remove if you always have the file)
+        st.warning("Upload 'football_intro.jpg' to see the background!")
+
+    # 2. LAYOUT: Center the content
+    # We use columns to create a centered 'card'
     c1, c2, c3 = st.columns([1, 2, 1])
     
     with c2:
-        # CUSTOM IMAGE LOGIC
-        # If your file exists, use it. Otherwise, fallback to the online one.
-        if os.path.exists("football_intro.jpg"):
-            st.image("football_intro.jpg", use_container_width=True)
-        elif os.path.exists("football_intro.png"):
-            st.image("football_intro.png", use_container_width=True)
-        else:
-            # Fallback if you forget to upload the file
-            st.image("https://images.unsplash.com/photo-1566577739112-5180d4bf9390?q=80&w=1000&auto=format&fit=crop", 
-                     caption="Please upload 'football_intro.jpg' to GitHub to change this image", use_container_width=True)
-        
         st.title("🏆 Playoff Fantasy League")
+        st.write("### Welcome to the Arena")
         
-        # --- NEW: DETAILS DROPDOWN ---
-        with st.expander("📖 League Rules & Details (Read First)", expanded=False):
+        # DETAILS DROPDOWN (Styled by CSS above to look like a card)
+        with st.expander("📖 READ ME: League Rules & Scoring", expanded=False):
             st.markdown("""
-            ### How it Works
-            The NFL Playoffs are a gauntlet, and so is this league. Your goal is to draft the highest-scoring team across all 4 rounds of the playoffs.
+            **The Mission:** Draft the highest-scoring team across all 4 rounds of the playoffs.
             
-            #### 1. The Roster
-            Every week, you must pick a fresh starting lineup of **10 Players**:
-            * **1 QB** (Quarterback)
-            * **2 RB** (Running Backs)
-            * **2 WR** (Wide Receivers)
-            * **1 TE** (Tight End)
-            * **2 FLEX** (RB, WR, or TE)
-            * **1 K** (Kicker)
-            * **1 DEF** (Team Defense)
+            **The Roster:** 10 Players (1 QB, 2 RB, 2 WR, 1 TE, 2 FLEX, 1 K, 1 DEF).
             
-            #### 2. The Multiplier Strategy 🚀
-            This is where championships are won. 
-            * **Week 1:** Everyone starts at **100% points**.
-            * **Week 2:** Play the *same player* consecutively? **110% Bonus**.
-            * **Week 3:** Keep the streak alive? **125% Bonus**.
-            * **Week 4:** Ride them to the Super Bowl? **150% Bonus**.
-            
-            *Note: If you bench a player and bring them back later, their multiplier resets to 100%.*
-            
-            #### 3. Scoring
-            Standard PPR (Points Per Reception) scoring applies. The winner is the Manager with the highest cumulative total after the Super Bowl.
+            **The Multipliers 🚀:**
+            * **Week 1:** 100% Points
+            * **Week 2 Streak:** 110% Bonus
+            * **Week 3 Streak:** 125% Bonus
+            * **Week 4 Streak:** 150% Bonus
+            *(Must play the same player consecutively to earn bonuses)*
             """)
         
         st.divider()
         
         # LOGIN TABS
-        tab1, tab2 = st.tabs(["Login", "Sign Up"])
+        # We put these inside a container to benefit from the CSS styling if possible
+        # but Streamlit tabs are tricky. The CSS above targets them specifically.
+        
+        tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
         
         with tab1:
-            st.subheader("Login")
             email = st.text_input("Email", key="login_email")
             password = st.text_input("Password", type='password', key="login_pass")
-            if st.button("Enter League"):
+            st.write("")
+            if st.button("Enter League", use_container_width=True, type="primary"):
                 is_valid, name = verify_login(email, password)
                 if is_valid:
                     st.session_state['logged_in'] = True
@@ -126,12 +187,12 @@ def login_page():
                     st.error(name)
                     
         with tab2:
-            st.subheader("Create Account")
             new_email = st.text_input("Enter Email", key="signup_email")
             new_user_name = st.text_input("Manager Name", placeholder="e.g. Coach Lasso", key="signup_name")
             new_password = st.text_input("Create Password", type='password', key="signup_pass")
+            st.write("")
             
-            if st.button("Sign Up"):
+            if st.button("Join the League", use_container_width=True):
                 if new_email and new_password and new_user_name:
                     success, msg = create_user(new_email, new_password, new_user_name)
                     if success:
@@ -141,8 +202,11 @@ def login_page():
                 else:
                     st.warning("Please fill out all fields.")
 
-# --- 5. MAIN APP ---
+# --- 6. MAIN APP ---
 def main_game_app():
+    # RESET BACKGROUND to clean dark mode for readability
+    clear_bg()
+    
     owner_name = st.session_state['manager_name']
 
     def get_sheet():
@@ -338,6 +402,3 @@ def main_game_app():
 
 # --- 6. PAGE ROUTER ---
 if st.session_state['logged_in']:
-    main_game_app()
-else:
-    login_page()
