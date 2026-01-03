@@ -3,9 +3,9 @@ import pandas as pd
 import gspread
 import hashlib
 import os
-import base64 # Required for the background image
+import base64
 
-st.set_page_config(layout="wide", page_title="Playoff Fantasy")
+st.set_page_config(layout="wide", page_title="Champions League")
 
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
@@ -24,22 +24,23 @@ def get_connection():
     gc = gspread.service_account_from_dict(creds)
     return gc
 
-# --- 2. CSS & BACKGROUND HELPERS ---
+# --- 2. CSS & STYLING (THE 300 THEME) ---
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, 'rb') as f:
         data = f.read()
     return base64.b64encode(data).decode()
 
 def set_bg_hack(main_bg):
-    '''
-    A function to unpack an image from disk and set as the full background.
-    '''
-    # set bg name
     main_bg_ext = "png"
-    
     st.markdown(
          f"""
          <style>
+         /* IMPORT '300' STYLE FONT (Rubik Wet Paint) */
+         @import url('https://fonts.googleapis.com/css2?family=Rubik+Wet+Paint&display=swap');
+         
+         /* Secondary Font for subtitles (Cinzel) to keep it readable but epic */
+         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap');
+
          .stApp {{
              background: url(data:image/{main_bg_ext};base64,{base64.b64encode(open(main_bg, "rb").read()).decode()});
              background-size: cover;
@@ -47,28 +48,52 @@ def set_bg_hack(main_bg):
              background-attachment: fixed;
              background-position: center;
          }}
-         /* Make the header transparent */
+         
          header {{visibility: hidden;}}
          
-         /* Create a 'Glass' effect for the login container */
-         div[data-testid="stExpander"] {{
-             background-color: rgba(255, 255, 255, 0.9); /* White with 10% transparency */
-             border-radius: 15px;
+         /* THE 300 TITLE CLASS */
+         .spartan-blood {{
+             font-family: 'Rubik Wet Paint', cursive;
+             font-size: 90px !important;
+             color: #8B0000; /* Blood Red */
+             text-shadow: 5px 5px 0px #000000; /* Hard black shadow */
+             line-height: 1.0;
+             margin-bottom: 0px;
+         }}
+         
+         .spartan-sub {{
+             font-family: 'Cinzel', serif;
+             font-size: 35px !important;
+             color: #e0e0e0; /* Bone White */
+             text-shadow: 3px 3px 5px #000000;
+             letter-spacing: 4px;
+             font-weight: 700;
+             margin-top: -10px;
+         }}
+
+         /* LOGIN CARD STYLING */
+         div[data-testid="stTabs"] {{
+             background-color: rgba(0, 0, 0, 0.85);
+             border: 2px solid #8B0000;
+             border-radius: 10px;
              padding: 20px;
-             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+             box-shadow: 0 0 30px rgba(139, 0, 0, 0.4); /* Red Glow */
+             color: white;
          }}
          
-         /* Improve tab visibility */
-         .stTabs [data-baseweb="tab-list"] {{
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 10px;
-            padding: 10px;
+         /* Expander Styling (The Scroll) */
+         div[data-testid="stExpander"] {{
+             background-color: rgba(20, 20, 20, 0.95);
+             border: 1px solid #8B0000;
+             color: white;
          }}
          
-         /* Make titles pop against background */
-         h1, h2, h3 {{
-             text-shadow: 2px 2px 4px #000000;
-             color: white !important;
+         /* Input fields */
+         input {{
+             color: black !important;
+         }}
+         label {{
+             color: #e0e0e0 !important; /* Bone white labels */
          }}
          </style>
          """,
@@ -76,108 +101,77 @@ def set_bg_hack(main_bg):
      )
 
 def clear_bg():
-    # Resets the background for the main app so it's readable
     st.markdown(
         """
         <style>
         .stApp {
             background: none;
-            background-color: #0e1117; /* Default dark mode color */
-        }
-        h1, h2, h3 {
-             text-shadow: none;
-             color: inherit !important;
+            background-color: #0e1117;
         }
         </style>
         """,
         unsafe_allow_html=True
     )
 
-# --- 3. AUTHENTICATION FUNCTIONS ---
+# --- 3. AUTH FUNCTIONS ---
 def create_user(email, password, manager_name):
     gc = get_connection()
     sh = gc.open("fantasy_league_db")
     worksheet = sh.worksheet("users")
-    
     df = pd.DataFrame(worksheet.get_all_records())
     if not df.empty and email in df['email'].values:
         return False, "Email already registered."
-    
     new_user = [email, make_hashes(password), manager_name]
     worksheet.append_row(new_user)
-    return True, "Account created! Please log in."
+    return True, "Account created!"
 
 def verify_login(email, password):
     gc = get_connection()
     sh = gc.open("fantasy_league_db")
     worksheet = sh.worksheet("users")
-    
     df = pd.DataFrame(worksheet.get_all_records())
     if df.empty: return False, "No users found."
-    
     if email in df['email'].values:
         user_row = df[df['email'] == email].iloc[0]
         if check_hashes(password, user_row['password']):
             return True, user_row['manager_name']
-            
     return False, "Incorrect email or password."
 
 # --- 4. SESSION STATE ---
-if 'logged_in' not in st.session_state:
-    st.session_state['logged_in'] = False
-if 'manager_name' not in st.session_state:
-    st.session_state['manager_name'] = ""
-if 'my_roster' not in st.session_state:
-    st.session_state['my_roster'] = []
+if 'logged_in' not in st.session_state: st.session_state['logged_in'] = False
+if 'manager_name' not in st.session_state: st.session_state['manager_name'] = ""
+if 'my_roster' not in st.session_state: st.session_state['my_roster'] = []
 
 # --- 5. LANDING PAGE ---
 def login_page():
-    # 1. APPLY BACKGROUND
-    # Check for your local file
-    if os.path.exists("football_intro.jpg"):
-        set_bg_hack("football_intro.jpg")
-    elif os.path.exists("football_intro.png"):
-        set_bg_hack("football_intro.png")
-    else:
-        # Fallback if file missing (optional: remove if you always have the file)
-        st.warning("Upload 'football_intro.jpg' to see the background!")
+    if os.path.exists("football_intro.jpg"): set_bg_hack("football_intro.jpg")
+    elif os.path.exists("football_intro.png"): set_bg_hack("football_intro.png")
+    else: st.warning("Upload 'football_intro.jpg' to GitHub!")
 
-    # 2. LAYOUT: Center the content
-    # We use columns to create a centered 'card'
-    c1, c2, c3 = st.columns([1, 2, 1])
+    # TOP LAYOUT: Title (Left) vs Login (Right)
+    col_title, col_space, col_login = st.columns([4, 1, 2])
     
-    with c2:
-        st.title("🏆 Playoff Fantasy League")
-        st.write("### Welcome to the Arena")
-        
-        # DETAILS DROPDOWN (Styled by CSS above to look like a card)
-        with st.expander("📖 READ ME: League Rules & Scoring", expanded=False):
-            st.markdown("""
-            **The Mission:** Draft the highest-scoring team across all 4 rounds of the playoffs.
-            
-            **The Roster:** 10 Players (1 QB, 2 RB, 2 WR, 1 TE, 2 FLEX, 1 K, 1 DEF).
-            
-            **The Multipliers 🚀:**
-            * **Week 1:** 100% Points
-            * **Week 2 Streak:** 110% Bonus
-            * **Week 3 Streak:** 125% Bonus
-            * **Week 4 Streak:** 150% Bonus
-            *(Must play the same player consecutively to earn bonuses)*
-            """)
-        
-        st.divider()
-        
-        # LOGIN TABS
-        # We put these inside a container to benefit from the CSS styling if possible
-        # but Streamlit tabs are tricky. The CSS above targets them specifically.
-        
-        tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
+    with col_title:
+        st.markdown('<br>', unsafe_allow_html=True)
+        # 300 STYLE TITLE
+        st.markdown(
+            '''
+            <div style="text-align: left;">
+                <p class="spartan-blood">CHAMPIONS<br>LEAGUE</p>
+                <p class="spartan-sub">2026 NFL PLAYOFFS</p>
+            </div>
+            ''', 
+            unsafe_allow_html=True
+        )
+
+    with col_login:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        tab1, tab2 = st.tabs(["🔐 ENTER", "📝 JOIN"])
         
         with tab1:
             email = st.text_input("Email", key="login_email")
             password = st.text_input("Password", type='password', key="login_pass")
-            st.write("")
-            if st.button("Enter League", use_container_width=True, type="primary"):
+            if st.button("LOG IN", use_container_width=True, type="primary"):
                 is_valid, name = verify_login(email, password)
                 if is_valid:
                     st.session_state['logged_in'] = True
@@ -187,25 +181,40 @@ def login_page():
                     st.error(name)
                     
         with tab2:
-            new_email = st.text_input("Enter Email", key="signup_email")
-            new_user_name = st.text_input("Manager Name", placeholder="e.g. Coach Lasso", key="signup_name")
-            new_password = st.text_input("Create Password", type='password', key="signup_pass")
-            st.write("")
-            
-            if st.button("Join the League", use_container_width=True):
+            new_email = st.text_input("Email", key="signup_email")
+            new_user_name = st.text_input("Manager Name", key="signup_name")
+            new_password = st.text_input("Password", type='password', key="signup_pass")
+            if st.button("SIGN UP", use_container_width=True):
                 if new_email and new_password and new_user_name:
                     success, msg = create_user(new_email, new_password, new_user_name)
-                    if success:
-                        st.success(msg)
-                    else:
-                        st.error(msg)
+                    if success: st.success(msg)
+                    else: st.error(msg)
                 else:
-                    st.warning("Please fill out all fields.")
+                    st.warning("Missing info")
 
-# --- 6. MAIN APP ---
+    # BOTTOM LAYOUT: Rules Expander
+    st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
+    
+    c_left, c_center, c_right = st.columns([1, 2, 1])
+    with c_center:
+        # We start it collapsed (expanded=False) so it opens up when clicked
+        with st.expander("📜 RULES OF THE ARENA (Click to Unroll)", expanded=False):
+            st.markdown("""
+            **The Mission:** Survive the gauntlet. Draft the highest-scoring team across all 4 rounds.
+            
+            **The Roster:** 10 Warriors (1 QB, 2 RB, 2 WR, 1 TE, 2 FLEX, 1 K, 1 DEF).
+            
+            **The Multipliers 🚀:**
+            * **Week 1:** 100% Strength
+            * **Week 2 Streak:** 110% Bonus
+            * **Week 3 Streak:** 125% Bonus
+            * **Week 4 Streak:** 150% Bonus
+            *(Must play the same warrior consecutively to earn bonuses)*
+            """)
+
+# --- 6. MAIN APP (War Room) ---
 def main_game_app():
-    # RESET BACKGROUND to clean dark mode for readability
-    clear_bg()
+    clear_bg() 
     
     owner_name = st.session_state['manager_name']
 
@@ -219,25 +228,21 @@ def main_game_app():
         df['display_name'] = df['name'] + " (" + df['team'] + ")"
         return df
 
-    try:
-        all_players = load_players()
-    except:
-        st.error("CRITICAL ERROR: Could not find players.csv")
+    try: all_players = load_players()
+    except: 
+        st.error("No players.csv found")
         st.stop()
 
-    # TOP BAR
     c1, c2 = st.columns([3, 1])
-    with c1:
-        st.title(f"🏈 {owner_name}'s War Room")
-    with c2:
+    with c1: st.title(f"🏈 {owner_name}'s War Room")
+    with c2: 
         if st.button("Log Out"):
             st.session_state['logged_in'] = False
             st.rerun()
 
     with st.expander("League Controls", expanded=True):
         col_week, col_load = st.columns([1, 1])
-        with col_week:
-            current_week = st.selectbox("Current Week", [1, 2, 3, 4])
+        with col_week: current_week = st.selectbox("Current Week", [1, 2, 3, 4])
         with col_load:
              st.write("") 
              if st.button("📂 Reload My Roster"):
@@ -253,44 +258,35 @@ def main_game_app():
                             saved_raw_names = saved_str.split(", ")
                             restored_roster = all_players[all_players['name'].isin(saved_raw_names)]['name'].tolist()
                             st.session_state['my_roster'] = restored_roster
-                            st.toast(f"Week {current_week} Roster Loaded!", icon="✅")
+                            st.toast(f"Week {current_week} Loaded!", icon="✅")
                             st.rerun()
                         else:
-                            st.toast(f"No roster found for Week {current_week}.", icon="ℹ️")
+                            st.toast("No roster found.", icon="ℹ️")
                             st.session_state['my_roster'] = []
                             st.rerun()
-                except Exception as e:
-                    st.error(f"Error: {e}")
+                except Exception as e: st.error(f"Error: {e}")
 
-    # MULTIPLIER LOGIC
     def calculate_multipliers(manager, week_num):
         multipliers = {}
         for name in all_players['name']: multipliers[name] = 1.0
         if week_num == 1: return multipliers
-
         try:
             sheet = get_sheet()
             records = sheet.get_all_records()
             df = pd.DataFrame(records)
             if df.empty or manager not in df['Manager'].values: return multipliers
-            
             user_row = df[df['Manager'] == manager].iloc[0]
-            
             def was_in_week(p_name, w):
                 col = f"Roster_{w}"
-                if col in user_row and user_row[col]:
-                    return p_name in user_row[col].split(", ")
+                if col in user_row and user_row[col]: return p_name in user_row[col].split(", ")
                 return False
-
             for name in all_players['name']:
                 streak = 0
                 if was_in_week(name, week_num - 1):
                     streak = 1
                     if week_num > 2 and was_in_week(name, week_num - 2):
                         streak = 2
-                        if week_num > 3 and was_in_week(name, week_num - 3):
-                            streak = 3
-                
+                        if week_num > 3 and was_in_week(name, week_num - 3): streak = 3
                 if streak == 1: multipliers[name] = 1.10
                 elif streak == 2: multipliers[name] = 1.25
                 elif streak == 3: multipliers[name] = 1.50
@@ -298,14 +294,11 @@ def main_game_app():
         return multipliers
 
     player_multipliers = calculate_multipliers(owner_name, current_week)
-
     dashboard_placeholder = st.container()
     st.divider()
 
-    # RENDER TABLES
     def render_position_table(position_name, header_text):
         pos_df = all_players[all_players['position'] == position_name].copy()
-        
         if 'my_roster' not in st.session_state: st.session_state['my_roster'] = []
         pos_df['Draft'] = pos_df['name'].isin(st.session_state['my_roster'])
         pos_df['mult'] = pos_df['name'].map(player_multipliers)
@@ -333,7 +326,6 @@ def main_game_app():
             },
             disabled=["ui_name", "boosted_points"], height=450
         )
-        
         selected_ui_names = edited_df[edited_df['Draft'] == True]['ui_name'].tolist()
         return pos_df[pos_df['ui_name'].isin(selected_ui_names)]['name'].tolist()
 
@@ -358,50 +350,3 @@ def main_game_app():
         def get_count(pos): return counts.get(pos, 0)
         qb, rb, wr, te = get_count("QB"), get_count("RB"), get_count("WR"), get_count("TE")
         k, def_ = get_count("K"), get_count("DEF")
-        flex = max(0, rb-2) + max(0, wr-2) + max(0, te-1)
-
-        d1, d2, d3 = st.columns([1, 3, 1])
-        with d1:
-            st.metric("Projected Score", f"{total_pts:.1f}")
-            st.write(f"**Players:** {len(current_selection)}/10")
-        with d2:
-            st.write("##### Roster Requirements")
-            s1, s2, s3, s4, s5, s6 = st.columns(6)
-            s1.markdown(f"**QB**<br>{'✅' if qb==1 else '❌'} {qb}/1", unsafe_allow_html=True)
-            s2.markdown(f"**RB**<br>{'✅' if rb>=2 else '⚠️'} {rb}", unsafe_allow_html=True)
-            s3.markdown(f"**WR**<br>{'✅' if wr>=2 else '⚠️'} {wr}", unsafe_allow_html=True)
-            s4.markdown(f"**TE**<br>{'✅' if te>=1 else '⚠️'} {te}", unsafe_allow_html=True)
-            s5.markdown(f"**K**<br>{'✅' if k==1 else '❌'} {k}/1", unsafe_allow_html=True)
-            s6.markdown(f"**DEF**<br>{'✅' if def_==1 else '❌'} {def_}/1", unsafe_allow_html=True)
-            if flex > 2: st.error(f"Too many Flex! ({flex}/2)")
-        with d3:
-            valid_roster = (qb==1 and rb>=2 and wr>=2 and te>=1 and flex<=2 and k==1 and def_==1 and len(current_selection)==10)
-            if valid_roster:
-                if st.button(f"💾 Submit Week {current_week}", type="primary", use_container_width=True, key="save_btn"):
-                    with st.spinner("Saving..."):
-                        sheet = get_sheet()
-                        if sheet:
-                            raw_names = my_team_data['name'].tolist()
-                            roster_str = ", ".join(raw_names)
-                            records = sheet.get_all_records()
-                            df_cloud = pd.DataFrame(records)
-                            
-                            if df_cloud.empty or owner_name not in df_cloud['Manager'].values:
-                                new_row = {"Manager": owner_name}
-                                df_cloud = pd.concat([df_cloud, pd.DataFrame([new_row])], ignore_index=True)
-                            
-                            idx = df_cloud.index[df_cloud['Manager'] == owner_name].tolist()[0]
-                            df_cloud.at[idx, f'Roster_{current_week}'] = roster_str
-                            df_cloud.at[idx, f'Points_{current_week}'] = total_pts
-                            
-                            sheet.clear()
-                            sheet.update([df_cloud.columns.values.tolist()] + df_cloud.values.tolist())
-                            st.success(f"Week {current_week} Saved!")
-            else:
-                st.button("Roster Invalid", disabled=True, use_container_width=True)
-
-# --- 6. PAGE ROUTER ---
-if st.session_state['logged_in']:
-    main_game_app()
-else:
-    login_page()
