@@ -402,3 +402,6 @@ def main_game_app():
 
 # --- 6. PAGE ROUTER ---
 if st.session_state['logged_in']:
+    main_game_app()
+else:
+    login_page()
