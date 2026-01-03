@@ -7,7 +7,7 @@ import os
 st.set_page_config(layout="wide", page_title="Champions League")
 
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
-# 1. Go to your GitHub Repo -> Click football_intro.png -> Right Click "Download" -> Copy Link
+# Example: "https://raw.githubusercontent.com/YourName/Repo/main/football_intro.png"
 BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
 # --- 1. SECURITY & DATABASE SETUP ---
@@ -32,7 +32,8 @@ def set_bg_from_url(url):
     st.markdown(
          f"""
          <style>
-         @import url('https://fonts.googleapis.com/css2?family=Rubik+Wet+Paint&display=swap');
+         /* IMPORT 'ROCK SALT' (Thinner, Scrawled Brush Look) */
+         @import url('https://fonts.googleapis.com/css2?family=Rock+Salt&display=swap');
          @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap');
 
          .stApp {{
@@ -45,21 +46,23 @@ def set_bg_from_url(url):
          
          header {{visibility: hidden;}}
          
+         /* THE NEW TITLE CLASS */
          .spartan-blood {{
-             font-family: 'Rubik Wet Paint', cursive;
-             font-size: 90px !important;
-             color: #8B0000;
-             text-shadow: 5px 5px 0px #000000;
-             line-height: 1.0;
-             margin-bottom: 0px;
+             font-family: 'Rock Salt', cursive;
+             font-size: 80px !important;
+             color: #8B0000; /* Blood Red */
+             text-shadow: 4px 4px 0px #000000; /* Sharp shadow */
+             line-height: 1.2;
+             margin-bottom: 10px;
+             transform: rotate(-2deg); /* Slight tilt for aggression */
          }}
          
          .spartan-sub {{
              font-family: 'Cinzel', serif;
-             font-size: 35px !important;
+             font-size: 30px !important;
              color: #e0e0e0;
              text-shadow: 3px 3px 5px #000000;
-             letter-spacing: 4px;
+             letter-spacing: 6px;
              font-weight: 700;
              margin-top: -10px;
          }}
@@ -136,7 +139,6 @@ if 'my_roster' not in st.session_state: st.session_state['my_roster'] = []
 
 # --- 5. LANDING PAGE ---
 def login_page():
-    # Load background from URL
     set_bg_from_url(BACKGROUND_IMAGE_URL)
 
     col_title, col_space, col_login = st.columns([4, 1, 2])
