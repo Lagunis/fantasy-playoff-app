@@ -8,9 +8,13 @@ st.title("🏆 Playoff Fantasy Manager 2026")
 # --- GOOGLE SHEETS CONNECTION ---
 # This function connects to Google and returns the "Sheet1" worksheet
 def get_sheet():
-    # Connect using your downloaded JSON file
-    gc = gspread.service_account(filename='credentials.json')
-    # Open the sheet by its exact name
+    # access the secrets you pasted into the Streamlit dashboard
+    creds = st.secrets["gcp_service_account"]
+
+    # Authenticate using the dictionary, not a file
+    gc = gspread.service_account_from_dict(creds)
+
+    # Open the sheet
     sh = gc.open("fantasy_league_db")
     return sh.sheet1
 
@@ -154,4 +158,5 @@ try:
     else:
         st.write("No teams in the league yet.")
 except:
+
     st.write("Connecting to league database...")
