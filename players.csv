@@ -1,0 +1,23 @@
+id,name,position,team,projected_points,cost
+1,Bo Nix,QB,DEN,22.5,4500
+2,Patrick Surtain (DEF),DEF,DEN,8.5,3000
+3,Kenneth Walker III,RB,SEA,18.2,6200
+4,DK Metcalf,WR,SEA,17.5,6000
+5,Caleb Williams,QB,CHI,20.1,5500
+6,DJ Moore,WR,CHI,15.5,5200
+7,Jalen Hurts,QB,PHI,24.5,7000
+8,Saquon Barkley,RB,PHI,19.2,6800
+9,Josh Allen,QB,BUF,23.5,7200
+10,Ja'Marr Chase,WR,CIN,18.0,6500
+11,Travis Etienne,RB,JAX,14.5,5800
+12,Evan Engram,TE,JAX,11.2,4200
+13,Justin Jefferson,WR,MIN,21.0,7500
+14,Christian McCaffrey,RB,SF,25.5,8000
+15,George Kittle,TE,SF,13.5,4800
+16,Puka Nacua,WR,LAR,16.8,6100
+17,Kyren Williams,RB,LAR,19.5,6400
+18,Harrison Butker,K,KC,9.0,2800
+19,Justin Tucker,K,BAL,8.5,2700
+20,TJ Watt (DEF),DEF,PIT,10.5,3200
+21,CeeDee Lamb,WR,DAL,18.5,7100
+22,Derrick Henry,RB,BAL,17.5,6300
