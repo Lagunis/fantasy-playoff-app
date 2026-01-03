@@ -350,3 +350,43 @@ def main_game_app():
         def get_count(pos): return counts.get(pos, 0)
         qb, rb, wr, te = get_count("QB"), get_count("RB"), get_count("WR"), get_count("TE")
         k, def_ = get_count("K"), get_count("DEF")
+        flex = max(0, rb-2) + max(0, wr-2) + max(0, te-1)
+
+        d1, d2, d3 = st.columns([1, 3, 1])
+        with d1:
+            st.metric("Projected Score", f"{total_pts:.1f}")
+            st.write(f"**Players:** {len(current_selection)}/10")
+        with d2:
+            st.write("##### Roster Requirements")
+            s1, s2, s3, s4, s5, s6 = st.columns(6)
+            s1.markdown(f"**QB**<br>{'✅' if qb==1 else '❌'} {qb}/1", unsafe_allow_html=True)
+            s2.markdown(f"**RB**<br>{'✅' if rb>=2 else '⚠️'} {rb}", unsafe_allow_html=True)
+            s3.markdown(f"**WR**<br>{'✅' if wr>=2 else '⚠️'} {wr}", unsafe_allow_html=True)
+            s4.markdown(f"**TE**<br>{'✅' if te>=1 else '⚠️'} {te}", unsafe_allow_html=True)
+            s5.markdown(f"**K**<br>{'✅' if k==1 else '❌'} {k}/1", unsafe_allow_html=True)
+            s6.markdown(f"**DEF**<br>{'✅' if def_==1 else '❌'} {def_}/1", unsafe_allow_html=True)
+            if flex > 2: st.error(f"Too many Flex! ({flex}/2)")
+        with d3:
+            valid_roster = (qb==1 and rb>=2 and wr>=2 and te>=1 and flex<=2 and k==1 and def_==1 and len(current_selection)==10)
+            if valid_roster:
+                if st.button(f"💾 Submit Week {current_week}", type="primary", use_container_width=True, key="save_btn"):
+                    with st.spinner("Saving..."):
+                        sheet = get_sheet()
+                        if sheet:
+                            raw_names = my_team_data['name'].tolist()
+                            roster_str = ", ".join(raw_names)
+                            records = sheet.get_all_records()
+                            df_cloud = pd.DataFrame(records)
+                            if df_cloud.empty or owner_name not in df_cloud['Manager'].values:
+                                new_row = {"Manager": owner_name}
+                                df_cloud = pd.concat([df_cloud, pd.DataFrame([new_row])], ignore_index=True)
+                            idx = df_cloud.index[df_cloud['Manager'] == owner_name].tolist()[0]
+                            df_cloud.at[idx, f'Roster_{current_week}'] = roster_str
+                            df_cloud.at[idx, f'Points_{current_week}'] = total_pts
+                            sheet.clear()
+                            sheet.update([df_cloud.columns.values.tolist()] + df_cloud.values.tolist())
+                            st.success(f"Week {current_week} Saved!")
+            else: st.button("Roster Invalid", disabled=True, use_container_width=True)
+
+if st.session_state['logged_in']: main_game_app()
+else: login_page()
