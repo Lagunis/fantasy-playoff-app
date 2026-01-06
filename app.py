@@ -1,3 +1,5 @@
+# LANDING PAGE IMAGE LINK:  "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
+
 import streamlit as st
 import pandas as pd
 import gspread
@@ -7,7 +9,7 @@ import os
 st.set_page_config(layout="wide", page_title="Champions League")
 
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
-BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
+BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/YOUR_USERNAME_HERE/fantasy-playoff-app/main/football_intro.png"
 
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
@@ -31,7 +33,6 @@ def set_bg_from_url(url):
     st.markdown(
          f"""
          <style>
-         /* IMPORT 'NANUM BRUSH SCRIPT' (The LeviBrush Alternative) */
          @import url('https://fonts.googleapis.com/css2?family=Nanum+Brush+Script&display=swap');
          @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap');
 
@@ -48,22 +49,22 @@ def set_bg_from_url(url):
          /* THE TITLE CLASS */
          .spartan-blood {{
              font-family: 'Nanum Brush Script', cursive;
-             font-size: 130px !important; /* Increased size because this font is naturally thinner */
-             color: #8B0000; /* Blood Red */
-             text-shadow: 3px 3px 0px #000000;
-             line-height: 1.0;
-             margin-bottom: 0px;
-             transform: rotate(-3deg); /* Slightly more tilt for that hasty brush look */
+             font-size: 130px !important;
+             color: #8B0000;
+             text-shadow: 4px 4px 0px #000000;
+             line-height: 0.9;
+             margin-bottom: 10px;
+             transform: rotate(-3deg);
          }}
          
          .spartan-sub {{
              font-family: 'Cinzel', serif;
-             font-size: 30px !important;
+             font-size: 35px !important;
              color: #e0e0e0;
              text-shadow: 2px 2px 4px #000000;
              letter-spacing: 5px;
              font-weight: 700;
-             margin-top: -5px;
+             margin-top: 5px;
          }}
 
          div[data-testid="stTabs"] {{
@@ -289,21 +290,29 @@ def main_game_app():
             elif m == 1.25: return f"{base} 🔥 1.25x"
             elif m == 1.50: return f"{base} 🚀 1.5x"
             else: return base
+        
+        # Display logic for Multiplier status
+        def format_status(row):
+            m = row['mult']
+            if m > 1.0: return f"Active ({int(m*100)}%)"
+            return "-"
 
         pos_df['ui_name'] = pos_df.apply(format_name, axis=1)
-        pos_df['boosted_points'] = pos_df['projected_points'] * pos_df['mult']
-        pos_df = pos_df.sort_values(by=['boosted_points'], ascending=False)
+        pos_df['status'] = pos_df.apply(format_status, axis=1)
+        
+        # SORT ALPHABETICALLY (Since no points exist)
+        pos_df = pos_df.sort_values(by=['team', 'name'], ascending=True)
         
         st.subheader(header_text)
         edited_df = st.data_editor(
-            pos_df[['Draft', 'ui_name', 'boosted_points']], 
+            pos_df[['Draft', 'ui_name', 'status']], 
             key=f"editor_{position_name}", hide_index=True,
             column_config={
                 "Draft": st.column_config.CheckboxColumn("Pick", width="small", default=False),
                 "ui_name": st.column_config.TextColumn("Player", width="large"),
-                "boosted_points": st.column_config.NumberColumn("Pts", format="%.1f", width="small")
+                "status": st.column_config.TextColumn("Bonus", width="small")
             },
-            disabled=["ui_name", "boosted_points"], height=450
+            disabled=["ui_name", "status"], height=450
         )
         selected_ui_names = edited_df[edited_df['Draft'] == True]['ui_name'].tolist()
         return pos_df[pos_df['ui_name'].isin(selected_ui_names)]['name'].tolist()
@@ -321,9 +330,6 @@ def main_game_app():
 
     with dashboard_placeholder:
         my_team_data = all_players[all_players['name'].isin(current_selection)].copy()
-        my_team_data['mult'] = my_team_data['name'].map(player_multipliers)
-        my_team_data['boosted_points'] = my_team_data['projected_points'] * my_team_data['mult']
-        total_pts = my_team_data['boosted_points'].sum()
         
         counts = my_team_data['position'].value_counts().to_dict()
         def get_count(pos): return counts.get(pos, 0)
@@ -333,8 +339,7 @@ def main_game_app():
 
         d1, d2, d3 = st.columns([1, 3, 1])
         with d1:
-            st.metric("Projected Score", f"{total_pts:.1f}")
-            st.write(f"**Players:** {len(current_selection)}/10")
+            st.metric("Total Players", f"{len(current_selection)}/10")
         with d2:
             st.write("##### Roster Requirements")
             s1, s2, s3, s4, s5, s6 = st.columns(6)
@@ -361,7 +366,9 @@ def main_game_app():
                                 df_cloud = pd.concat([df_cloud, pd.DataFrame([new_row])], ignore_index=True)
                             idx = df_cloud.index[df_cloud['Manager'] == owner_name].tolist()[0]
                             df_cloud.at[idx, f'Roster_{current_week}'] = roster_str
-                            df_cloud.at[idx, f'Points_{current_week}'] = total_pts
+                            # Note: Points are 0 now because we don't have them in CSV
+                            # You will need to fill them in manually later!
+                            df_cloud.at[idx, f'Points_{current_week}'] = 0 
                             sheet.clear()
                             sheet.update([df_cloud.columns.values.tolist()] + df_cloud.values.tolist())
                             st.success(f"Week {current_week} Saved!")
