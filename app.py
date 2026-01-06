@@ -1,22 +1,4 @@
-This is a precision fix. The issues you described (contrast problems, invisible text) were caused by the "Nuclear CSS" option I used previously, which forced every text element to be white—even when it was sitting on top of a white background (like inside a text box or a button).
-
-I have rewritten the CSS to be surgically precise.
-
-Key Fixes:
-Landing Page: Darkened the Login Box background to near-black (0.95 opacity) and added a heavy Red Glow shadow to make it stand out against the background image.
-
-War Room Sidebar: Forced the text inside the "Current Team" boxes to be Black and Bold, so it pops against the white input box.
-
-Logout Button: Styled specifically to be Red with White Text (high contrast).
-
-Table Headers: Removed the code that was forcing them to be white-on-white. They will now be readable.
-
-Update app.py
-Replace your entire file with this version.
-
-(Remember to paste your GitHub Image URL at the top one last time!)
-
-Python
+# LANDING PAGE IMAGE LINK:  "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
 import streamlit as st
 import pandas as pd
