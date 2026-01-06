@@ -8,8 +8,12 @@ import os
 
 st.set_page_config(layout="wide", page_title="Champions League")
 
+# --- ⚙️ COMMISSIONER CONTROLS ⚙️ ---
+# CHANGE THIS NUMBER (1-4) TO ADVANCE THE LEAGUE WEEK
+CURRENT_WEEK = 1 
+
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
-BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
+BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/YOUR_USERNAME_HERE/fantasy-playoff-app/main/football_intro.png"
 
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
@@ -76,27 +80,62 @@ def set_bg_from_url(url):
              color: white;
          }}
          
-         /* Expander Styling - Made wider/darker for rules */
          div[data-testid="stExpander"] {{
              background-color: rgba(10, 10, 10, 0.98);
              border: 1px solid #8B0000;
              color: white;
          }}
          
-         input {{ color: black !important; }}
-         label {{ color: #e0e0e0 !important; }}
+         input {{ color: black; }}
+         label {{ color: #e0e0e0; }}
          </style>
          """,
          unsafe_allow_html=True
      )
 
-def clear_bg():
+def apply_war_room_style():
     st.markdown(
         """
         <style>
         .stApp {
-            background: none;
-            background-color: #0e1117;
+            background-image: none !important;
+            background-color: #121212 !important; 
+        }
+        h1, h2, h3, h4, h5, h6, p, li, div, span {
+            color: #E0E0E0 !important; 
+        }
+        h1, h2, h3 {
+            font-family: 'Cinzel', serif !important;
+            color: #D22B2B !important; 
+            text-shadow: 1px 1px 2px black;
+        }
+        .stSelectbox div[data-baseweb="select"] > div {
+            background-color: #262626 !important; 
+            color: white !important;
+            border: 1px solid #444;
+        }
+        [data-testid="stDataEditor"] {
+            border: 1px solid #444;
+            border-radius: 5px;
+            background-color: #1E1E1E;
+        }
+        [data-testid="stMetricValue"] {
+            color: #FFD700 !important; 
+            font-size: 36px !important;
+        }
+        [data-testid="stMetricLabel"] {
+            color: #AAAAAA !important;
+        }
+        button {
+            border-radius: 5px !important;
+            font-weight: bold !important;
+        }
+        .streamlit-expanderHeader {
+            background-color: #262626 !important;
+            color: white !important;
+        }
+        label[data-baseweb="checkbox"] {
+            color: white !important;
         }
         </style>
         """,
@@ -137,6 +176,8 @@ def verify_login(email, password):
 if 'logged_in' not in st.session_state: st.session_state['logged_in'] = False
 if 'manager_name' not in st.session_state: st.session_state['manager_name'] = ""
 if 'my_roster' not in st.session_state: st.session_state['my_roster'] = []
+# New: Track if we have already fetched the roster for this session
+if 'roster_loaded' not in st.session_state: st.session_state['roster_loaded'] = False
 
 # --- 5. LANDING PAGE ---
 def login_page():
@@ -168,6 +209,8 @@ def login_page():
                 if is_valid:
                     st.session_state['logged_in'] = True
                     st.session_state['manager_name'] = name
+                    # Reset roster load state on new login
+                    st.session_state['roster_loaded'] = False 
                     st.rerun()
                 else:
                     st.error(name)
@@ -203,10 +246,10 @@ def login_page():
             
             ### 🚀 The Multiplier Strategy
             Loyalty is rewarded. If you start the same player in consecutive weeks, their points are multiplied.
-            * **1st Week (or new player):** 100% Points (1.0x)
-            * **2 Consecutive Weeks:** 110% Points (1.1x)
-            * **3 Consecutive Weeks:** 125% Points (1.25x)
-            * **4 Consecutive Weeks:** 150% Points (1.5x)
+            * **Player's 1st Week:** 100% Points (1.0x)
+            * **Player's 2nd Straight Week:** 110% Points (1.1x)
+            * **Player's 3rd Straight Week:** 125% Points (1.25x)
+            * **Player's 4th Straight Week:** 150% Points (1.5x)
             *(Note: If you bench a player for a week and then bring them back for a later week, the streak resets to 1.0x)*
 
             ### 📋 Roster Requirements (10 Players)
@@ -262,7 +305,7 @@ def login_page():
 
 # --- 6. MAIN APP ---
 def main_game_app():
-    clear_bg()
+    apply_war_room_style()
     owner_name = st.session_state['manager_name']
 
     def get_sheet():
@@ -280,39 +323,52 @@ def main_game_app():
         st.error("No players.csv found")
         st.stop()
 
+    # --- AUTO-LOAD LOGIC ---
+    # This runs ONLY ONCE when the user first enters the War Room
+    if not st.session_state['roster_loaded']:
+        try:
+            sheet = get_sheet()
+            records = sheet.get_all_records()
+            df_cloud = pd.DataFrame(records)
+            
+            target_col = f"Roster_{CURRENT_WEEK}"
+            
+            if not df_cloud.empty and owner_name in df_cloud['Manager'].values:
+                user_row = df_cloud[df_cloud['Manager'] == owner_name].iloc[0]
+                if target_col in user_row and user_row[target_col]:
+                    # Found a saved roster for this week!
+                    saved_str = user_row[target_col]
+                    saved_raw_names = saved_str.split(", ")
+                    # Filter to ensure valid names
+                    restored_roster = all_players[all_players['name'].isin(saved_raw_names)]['name'].tolist()
+                    st.session_state['my_roster'] = restored_roster
+                    st.toast(f"Week {CURRENT_WEEK} Roster Auto-Loaded", icon="📂")
+                else:
+                    # No roster saved yet for this week
+                    st.session_state['my_roster'] = []
+                    st.toast(f"Welcome to Week {CURRENT_WEEK}. Draft your squad.", icon="⚔️")
+            else:
+                st.session_state['my_roster'] = []
+        except Exception as e:
+            st.error(f"Auto-load failed: {e}")
+        
+        # Mark as loaded so we don't overwrite user changes on next rerun
+        st.session_state['roster_loaded'] = True
+
+
+    # --- HEADER ---
     c1, c2 = st.columns([3, 1])
-    with c1: st.title(f"🏈 {owner_name}'s War Room")
+    with c1: 
+        st.title(f"🏈 {owner_name}'s War Room")
+        st.caption(f"Drafting for: **WEEK {CURRENT_WEEK}**")
     with c2: 
         if st.button("Log Out"):
             st.session_state['logged_in'] = False
+            st.session_state['roster_loaded'] = False
+            st.session_state['my_roster'] = []
             st.rerun()
 
-    with st.expander("League Controls", expanded=True):
-        col_week, col_load = st.columns([1, 1])
-        with col_week: current_week = st.selectbox("Current Week", [1, 2, 3, 4])
-        with col_load:
-             st.write("") 
-             if st.button("📂 Reload My Roster"):
-                try:
-                    sheet = get_sheet()
-                    records = sheet.get_all_records()
-                    df_cloud = pd.DataFrame(records)
-                    if not df_cloud.empty and owner_name in df_cloud['Manager'].values:
-                        target_col = f"Roster_{current_week}"
-                        user_row = df_cloud[df_cloud['Manager'] == owner_name].iloc[0]
-                        if target_col in user_row and user_row[target_col]:
-                            saved_str = user_row[target_col]
-                            saved_raw_names = saved_str.split(", ")
-                            restored_roster = all_players[all_players['name'].isin(saved_raw_names)]['name'].tolist()
-                            st.session_state['my_roster'] = restored_roster
-                            st.toast(f"Week {current_week} Loaded!", icon="✅")
-                            st.rerun()
-                        else:
-                            st.toast("No roster found.", icon="ℹ️")
-                            st.session_state['my_roster'] = []
-                            st.rerun()
-                except Exception as e: st.error(f"Error: {e}")
-
+    # --- MULTIPLIERS ---
     def calculate_multipliers(manager, week_num):
         multipliers = {}
         for name in all_players['name']: multipliers[name] = 1.0
@@ -323,10 +379,12 @@ def main_game_app():
             df = pd.DataFrame(records)
             if df.empty or manager not in df['Manager'].values: return multipliers
             user_row = df[df['Manager'] == manager].iloc[0]
+            
             def was_in_week(p_name, w):
                 col = f"Roster_{w}"
                 if col in user_row and user_row[col]: return p_name in user_row[col].split(", ")
                 return False
+            
             for name in all_players['name']:
                 streak = 0
                 if was_in_week(name, week_num - 1):
@@ -340,10 +398,12 @@ def main_game_app():
         except: pass
         return multipliers
 
-    player_multipliers = calculate_multipliers(owner_name, current_week)
+    # Calculate multipliers for CURRENT_WEEK
+    player_multipliers = calculate_multipliers(owner_name, CURRENT_WEEK)
     dashboard_placeholder = st.container()
     st.divider()
 
+    # --- TABLES ---
     def render_position_table(position_name, header_text):
         pos_df = all_players[all_players['position'] == position_name].copy()
         if 'my_roster' not in st.session_state: st.session_state['my_roster'] = []
@@ -392,6 +452,7 @@ def main_game_app():
     current_selection = sel_qb + sel_rb + sel_wr + sel_te + sel_k + sel_def
     st.session_state['my_roster'] = current_selection
 
+    # --- DASHBOARD & SAVE ---
     with dashboard_placeholder:
         my_team_data = all_players[all_players['name'].isin(current_selection)].copy()
         
@@ -417,7 +478,7 @@ def main_game_app():
         with d3:
             valid_roster = (qb==1 and rb>=2 and wr>=2 and te>=1 and flex<=2 and k==1 and def_==1 and len(current_selection)==10)
             if valid_roster:
-                if st.button(f"💾 Submit Week {current_week}", type="primary", use_container_width=True, key="save_btn"):
+                if st.button(f"💾 Submit Week {CURRENT_WEEK}", type="primary", use_container_width=True, key="save_btn"):
                     with st.spinner("Saving..."):
                         sheet = get_sheet()
                         if sheet:
@@ -425,16 +486,23 @@ def main_game_app():
                             roster_str = ", ".join(raw_names)
                             records = sheet.get_all_records()
                             df_cloud = pd.DataFrame(records)
+                            
+                            # Ensure manager exists
                             if df_cloud.empty or owner_name not in df_cloud['Manager'].values:
                                 new_row = {"Manager": owner_name}
                                 df_cloud = pd.concat([df_cloud, pd.DataFrame([new_row])], ignore_index=True)
+                            
                             idx = df_cloud.index[df_cloud['Manager'] == owner_name].tolist()[0]
-                            df_cloud.at[idx, f'Roster_{current_week}'] = roster_str
-                            df_cloud.at[idx, f'Points_{current_week}'] = 0 
+                            
+                            # Save to CURRENT_WEEK column
+                            df_cloud.at[idx, f'Roster_{CURRENT_WEEK}'] = roster_str
+                            df_cloud.at[idx, f'Points_{CURRENT_WEEK}'] = 0 
+                            
                             sheet.clear()
                             sheet.update([df_cloud.columns.values.tolist()] + df_cloud.values.tolist())
-                            st.success(f"Week {current_week} Saved!")
+                            st.success(f"Week {CURRENT_WEEK} Saved!")
             else: st.button("Roster Invalid", disabled=True, use_container_width=True)
 
+# --- 7. ROUTER ---
 if st.session_state['logged_in']: main_game_app()
 else: login_page()
