@@ -14,7 +14,7 @@ st.set_page_config(layout="wide", page_title="Champions League")
 CURRENT_WEEK = 1 
 
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
-BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
+BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/YOUR_USERNAME_HERE/fantasy-playoff-app/main/football_intro.png"
 
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
@@ -144,40 +144,22 @@ def apply_war_room_style():
             border: 1px solid #A78BFA !important;
         }
         
-        /* 2. GRAY (Inactive Nav Button) */
+        /* 2. GRAY (Inactive Nav Button / Secondary) */
         button[kind="secondary"] {
             background-color: #334155 !important; /* Slate 700 */
             color: #E2E8F0 !important;
             border: 1px solid #475569 !important;
         }
-
-        /* 3. SPECIFIC OVERRIDES FOR ACTIONS */
         
-        /* Logout & Reset (Red) - We target by exact text content usually, 
-           but CSS doesn't support text selectors easily. 
-           We will use inline styles or specific container targeting where possible 
-           or rely on the fact that Reset/Logout are usually Secondary buttons in specific columns.
-           
-           Actually, let's keep it simple: 
-           Nav uses Primary/Secondary (Purple/Gray).
-           Action buttons (Save) will need a specific override via Streamlit help 
-           or we accept them as Purple for "Go".
-           
-           Wait, user specifically asked for Purple for Active Nav.
-           Let's hack the Save button to be Green specifically.
-        */
-        
-        /* Force the specific "Save" button (last button on page usually) to Green 
-           is risky. Instead, we'll assume Primary = Purple (Active) 
-           and Secondary = Gray (Inactive). 
-           
-           BUT, for the Save button, we really want Green.
-           We can wrap the Save button in a container with a unique styling? No.
-           
-           Let's stick to the user request: Nav = Purple/Gray.
-           I will try to force the SAVE button to be Green using a data-testid selector workaround if possible,
-           otherwise it will be Purple (Active).
-        */
+        /* 3. RED (Disabled Button = Roster Invalid) */
+        /* This forces the disabled button to look Red instead of Gray */
+        button:disabled {
+            background-color: #7F1D1D !important; /* Dark Red */
+            color: #FECACA !important; /* Light Red Text */
+            border: 1px solid #B91C1C !important;
+            opacity: 1.0 !important; /* Remove transparency */
+            cursor: not-allowed;
+        }
 
         /* TABLES & METRICS */
         [data-testid="stDataEditor"] {
@@ -341,51 +323,43 @@ def login_page():
             * **Player's 4th Straight Week:** 150% Points (1.5x)
             *(Note: If you bench a player for a week and then bring them back for a later week, the streak resets to 1.0x)*
 
-             ### 📋 Roster Requirements (10 Players)
-             Pos | Count 
-             :--- | :--- 
-             **QB** | 1 
-            | **RB** | 2 |
-            | **WR** | 2 |
-            | **TE** | 1 |
-            | **FLEX** | 2 (RB/WR/TE) |
-            | **K** | 1 |
-            | **DEF** | 1 (Team Defense) |
+             ### 📋 Roster (10 Players)
+            1 QB, 2 RB, 2 WR, 1 TE, 2 FLEX, 1 K, 1 DEF.
 
              ### 🏈 Scoring Settings
-            | Stat | Points |
-            | :--- | :--- |
-            | **Passing TD** | 6 pts |
-            | **2 PT Conversion** | 2 pts |
-            | **Passing Yards** | 1 pt per 30 yds |
-            | **Interception** | -3 pt |
-            | **Pick 6** | -3 pt |
-            | **QB Sack Taken** | -1 pt |
-            | **Rushing/Rec TD** | 6 pts |
-            | **2 PT Conversion** | 2 pts |
-            | **Rushing/Rec Yards** | 1 pt per 10 yds |
-            | **Reception** | 0.5 pts (Half-PPR) |
-            | **Fumble Lost** | -3 pts |
-            | **Fumble Rec. TD** | 6 pts |
-            | **Safety Taken (Rush/Rec.)** | -2 pts |
-            | **Punt Return (Over 10 yards)** | 1 pt per 10 yds |
-            | **Kick Return (Over 20 yards)** | 1 pt per 10 yds |
-            | **FG Made** | 3 pts |
-            | **FGM Yard Over 30** | 0.1 pts |
-            | **PAT Made** | 1 pt |
-            | **FG Missed** | -3 pts |
-            | **PAT Missed** | -3 pts |
-            | **Defense TD** | 6 pts |
-            | **0 Pts Allowed** | 12 pts |
-            | **1-6 Pts Allowed** | 9 pts |
-            | **7-13 Pts Allowed** | 6 pts |
-            | **14-20 Pts Allowed** | 3 pts |
-            | **21-27 Pts Allowed** | 0 pts |
-            | **28-34 Pts Allowed** | -3 pts |
-            | **35+ Pts Allowed** | -6 pts |
-            | **4th Down Stop** | 1 pt |
-            | **DEF Sack** | 1 pt |
-            | **DEF INT** | 3 pt |
+            *| Stat | Points |
+            *| :--- | :--- |
+            *| **Passing TD** | 6 pts |
+            *| **2 PT Conversion** | 2 pts |
+            *| **Passing Yards** | 1 pt per 30 yds |
+            *| **Interception** | -3 pt |
+            *| **Pick 6** | -3 pt |
+            *| **QB Sack Taken** | -1 pt |
+            *| **Rushing/Rec TD** | 6 pts |
+            *| **2 PT Conversion** | 2 pts |
+            *| **Rushing/Rec Yards** | 1 pt per 10 yds |
+            *| **Reception** | 0.5 pts (Half-PPR) |
+            *| **Fumble Lost** | -3 pts |
+            *| **Fumble Rec. TD** | 6 pts |
+            *| **Safety Taken (Rush/Rec.)** | -2 pts |
+            *| **Punt Return (Over 10 yards)** | 1 pt per 10 yds |
+            *| **Kick Return (Over 20 yards)** | 1 pt per 10 yds |
+            *| **FG Made** | 3 pts |
+            *| **FGM Yard Over 30** | 0.1 pts |
+            *| **PAT Made** | 1 pt |
+            *| **FG Missed** | -3 pts |
+            *| **PAT Missed** | -3 pts |
+            *| **Defense TD** | 6 pts |
+            *| **0 Pts Allowed** | 12 pts |
+            *| **1-6 Pts Allowed** | 9 pts |
+            *| **7-13 Pts Allowed** | 6 pts |
+            *| **14-20 Pts Allowed** | 3 pts |
+            *| **21-27 Pts Allowed** | 0 pts |
+            *| **28-34 Pts Allowed** | -3 pts |
+            *| **35+ Pts Allowed** | -6 pts |
+            *| **4th Down Stop** | 1 pt |
+            *| **DEF Sack** | 1 pt |
+            *| **DEF INT** | 3 pt |
             """)
 
 # --- 7. LEADERBOARD PAGE ---
@@ -500,12 +474,6 @@ def war_room_page():
     st.sidebar.markdown("## 🛡️ Current Team")
     st.sidebar.divider()
 
-    # --- RESET BUTTON ---
-    if st.sidebar.button("⚠️ Reset Roster", use_container_width=True, type="secondary"):
-        st.session_state['my_roster'] = []
-        st.rerun()
-    st.sidebar.write("") # spacer
-
     if current_roster_names:
         roster_df = all_players[all_players['name'].isin(current_roster_names)]
         
@@ -518,10 +486,9 @@ def war_room_page():
         
         flex_pool = rbs[2:] + wrs[2:] + tes[1:] 
         
-        # VISIBILITY FIX: Using HTML/Markdown blocks instead of disabled inputs
+        # VISIBILITY FIX: Custom HTML for Sidebar
         def render_slot(label, players, index):
             val = players[index] if len(players) > index else "---"
-            # CSS Block for Sidebar Items
             st.sidebar.markdown(f"""
             <div style="margin-bottom: 5px;">
                 <span style="color: #94A3B8; font-size: 12px; font-weight: bold;">{label}</span>
@@ -541,7 +508,6 @@ def war_room_page():
         f1 = flex_pool[0] if len(flex_pool) > 0 else "---"
         f2 = flex_pool[1] if len(flex_pool) > 1 else "---"
         
-        # Manually render Flex slots
         st.sidebar.markdown(f"""
         <div style="margin-bottom: 5px;">
             <span style="color: #94A3B8; font-size: 12px; font-weight: bold;">FLEX 1</span>
@@ -689,6 +655,12 @@ def war_room_page():
             s6.markdown(f"**DEF**<br>{'✅' if def_==1 else '❌'} {def_}/1", unsafe_allow_html=True)
             if flex > 2: st.error(f"Too many Flex! ({flex}/2)")
         with d3:
+            # RESET BUTTON (Gray/Secondary)
+            if st.button("🔄 Reset Roster", use_container_width=True, type="secondary"):
+                st.session_state['my_roster'] = []
+                st.rerun()
+
+            # VALIDITY CHECK BUTTONS
             valid_roster = (qb==1 and rb>=2 and wr>=2 and te>=1 and flex<=2 and k==1 and def_==1 and len(current_selection)==10)
             if valid_roster:
                 # INLINE STYLE HACK FOR GREEN BUTTON since CSS primary override affects Nav
@@ -722,7 +694,9 @@ def war_room_page():
                             sheet.clear()
                             sheet.update([df_cloud.columns.values.tolist()] + df_cloud.values.tolist())
                             st.success(f"Week {CURRENT_WEEK} Saved!")
-            else: st.button("Roster Invalid", disabled=True, use_container_width=True)
+            else: 
+                # CSS handles the RED coloring for disabled buttons
+                st.button("Roster Invalid", disabled=True, use_container_width=True)
 
 # --- 9. ROUTER ---
 if st.session_state['logged_in']:
@@ -732,4 +706,3 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
-
