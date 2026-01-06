@@ -81,56 +81,32 @@ def set_bg_from_url(url):
              color: white !important;
          }}
          
-         /* Force Tabs Text Color */
-         button[data-baseweb="tab"] {{
-             color: white !important;
-         }}
-         div[data-baseweb="tab-highlight"] {{
-             background-color: #8B0000 !important;
-         }}
+         button[data-baseweb="tab"] {{ color: white !important; }}
+         div[data-baseweb="tab-highlight"] {{ background-color: #8B0000 !important; }}
          
          /* LANDING PAGE INPUTS */
-         label {{
+         label {{ color: white !important; }}
+         input {{ color: black !important; }}
+
+         /* RULES BOX FIXES */
+         /* Force the expander background to be dark */
+         div[data-testid="stExpander"] {{
+             background-color: #0F172A !important;
+             border: 1px solid #8B0000 !important;
              color: white !important;
          }}
-         input {{
-             color: black !important;
+         div[data-testid="stExpander"] p, li, span, div {{
+            color: #E2E8F0 !important;
          }}
-
-         /* RULES BOX STYLING - FORCE WHITE TEXT & BETTER FONT */
-         div[data-testid="stExpander"] {{
-             background-color: rgba(15, 15, 15, 0.95) !important;
-             border: 1px solid #8B0000 !important;
+         /* Hide the weird "keyboard_arrow_down" text artifact */
+         div[data-testid="stExpander"] summary span {{
+             display: none !important; 
          }}
-         /* Target all text inside the expander content area */
-         div[data-testid="stExpander"] p, 
-         div[data-testid="stExpander"] li, 
-         div[data-testid="stExpander"] span,
-         div[data-testid="stExpander"] div {{
-             color: #FFFFFF !important; /* Pure White */
-             font-family: 'Roboto Slab', serif !important; /* Aesthetic Font */
-             font-size: 18px !important; /* Larger Size */
-             line-height: 1.6 !important;
-         }}
-         /* Target headers inside expander */
-         div[data-testid="stExpander"] h1, 
-         div[data-testid="stExpander"] h2, 
-         div[data-testid="stExpander"] h3 {{
-             color: #FBBF24 !important; /* Gold Headers */
-             font-family: 'Cinzel', serif !important;
-             margin-top: 15px !important;
-             margin-bottom: 10px !important;
-         }}
-         /* Target bold text inside expander */
-         div[data-testid="stExpander"] strong {{
-             color: #FBBF24 !important; /* Gold for emphasis */
-             font-weight: 700 !important;
-         }}
-
-         /* LOGIN / SIGNUP BUTTONS (Red on Landing Page) */
-         /* We target buttons specifically within the tabs area */
+         /* Re-add a manual arrow if needed, but usually clicking the box works fine */
+         
+         /* LOGIN / SIGNUP BUTTONS */
          div[data-testid="stTabs"] button[kind="primary"] {{
-             background-color: #991B1B !important; /* Dark Red */
+             background-color: #991B1B !important;
              color: white !important;
              border: 1px solid #F87171 !important;
          }}
@@ -156,30 +132,34 @@ def apply_war_room_style():
             text-shadow: 1px 1px 2px black;
         }
         
-        /* SIDEBAR INPUTS: Dark Gray Font for Contrast */
-        [data-testid="stSidebar"] input {
-            color: #111827 !important; /* Very Dark Gray (Near Black) */
-            font-weight: 800 !important; /* Bold */
-            background-color: #F1F5F9 !important; /* Very light grey background */
-            font-size: 15px !important;
+        /* SIDEBAR INPUTS: FIXED TO BE DARK GRAY */
+        div[data-testid="stSidebar"] input {
+            color: #111827 !important; /* Almost Black */
+            font-weight: 900 !important; /* Extra Bold */
+            background-color: #F1F5F9 !important; /* Light Grey Background */
+            -webkit-text-fill-color: #111827 !important; /* Force override for Webkit */
+            opacity: 1 !important; /* Ensure no transparency */
         }
         
-        /* LOGOUT BUTTON (Red) */
+        /* LOGOUT BUTTON */
         button[kind="secondary"] {
             background-color: #7F1D1D !important;
             color: white !important;
             border: 1px solid #EF4444 !important;
         }
 
-        /* SAVE ROSTER BUTTON (Green) */
+        /* SAVE ROSTER BUTTON */
         button[kind="primary"] {
-            background-color: #15803d !important; /* Strong Green */
+            background-color: #15803d !important; 
             color: white !important;
             border: 1px solid #4ade80 !important;
             font-size: 18px !important;
         }
-        button[kind="primary"]:hover {
-            background-color: #166534 !important;
+        
+        /* NAV BAR BUTTONS */
+        /* We create a special class of buttons for navigation */
+        div[data-testid="stHorizontalBlock"] button {
+            border: 1px solid #334155;
         }
 
         /* Tables */
@@ -238,8 +218,36 @@ if 'logged_in' not in st.session_state: st.session_state['logged_in'] = False
 if 'manager_name' not in st.session_state: st.session_state['manager_name'] = ""
 if 'my_roster' not in st.session_state: st.session_state['my_roster'] = []
 if 'roster_loaded' not in st.session_state: st.session_state['roster_loaded'] = False
+if 'current_page' not in st.session_state: st.session_state['current_page'] = "War Room" # Track which page we are on
 
-# --- 5. LANDING PAGE ---
+# --- 5. PAGE NAVIGATION COMPONENT ---
+def render_navbar():
+    """Renders the top navigation to switch between pages"""
+    c1, c2, c3, c4 = st.columns([1, 1, 4, 1])
+    
+    with c1:
+        # If button clicked, change state to War Room
+        if st.button("⚔️ WAR ROOM", use_container_width=True, type="primary" if st.session_state['current_page'] == "War Room" else "secondary"):
+            st.session_state['current_page'] = "War Room"
+            st.rerun()
+            
+    with c2:
+        # If button clicked, change state to Leaderboard
+        if st.button("🏛️ COLOSSEUM", use_container_width=True, type="primary" if st.session_state['current_page'] == "Leaderboard" else "secondary"):
+            st.session_state['current_page'] = "Leaderboard"
+            st.rerun()
+            
+    with c4:
+        if st.button("LOG OUT", use_container_width=True, type="secondary"):
+            st.session_state['logged_in'] = False
+            st.session_state['roster_loaded'] = False
+            st.session_state['my_roster'] = []
+            st.session_state['current_page'] = "War Room"
+            st.rerun()
+    
+    st.divider()
+
+# --- 6. LANDING PAGE ---
 def login_page():
     set_bg_from_url(BACKGROUND_IMAGE_URL)
 
@@ -264,7 +272,6 @@ def login_page():
         with tab1:
             email = st.text_input("Email", key="login_email")
             password = st.text_input("Password", type='password', key="login_pass")
-            # Added type="primary" to match CSS selector
             if st.button("LOG IN", use_container_width=True, type="primary"):
                 is_valid, name = verify_login(email, password)
                 if is_valid:
@@ -279,11 +286,17 @@ def login_page():
             new_email = st.text_input("Email", key="signup_email")
             new_user_name = st.text_input("Manager Name", key="signup_name")
             new_password = st.text_input("Password", type='password', key="signup_pass")
-            # Added type="primary" to make it Red
+            # AUTO-LOGIN LOGIC ADDED HERE
             if st.button("SIGN UP", use_container_width=True, type="primary"):
                 if new_email and new_password and new_user_name:
                     success, msg = create_user(new_email, new_password, new_user_name)
-                    if success: st.success(msg)
+                    if success: 
+                        st.success(msg)
+                        # Auto-Login
+                        st.session_state['logged_in'] = True
+                        st.session_state['manager_name'] = new_user_name
+                        st.session_state['roster_loaded'] = False
+                        st.rerun()
                     else: st.error(msg)
                 else:
                     st.warning("Missing info")
@@ -295,14 +308,92 @@ def login_page():
             if os.path.exists("rules.md"):
                 with open("rules.md", "r") as f:
                     rules_text = f.read()
-                # The CSS now handles the styling globally for this section
                 st.markdown(rules_text)
             else:
                 st.warning("rules.md file not found.")
 
-# --- 6. MAIN APP ---
-def main_game_app():
+# --- 7. LEADERBOARD PAGE ("THE COLOSSEUM") ---
+def leaderboard_page():
     apply_war_room_style()
+    render_navbar()
+    
+    st.title("🏛️ The Colosseum")
+    st.caption("Current Standings & Manager Directory")
+    
+    # Fetch Data
+    try:
+        gc = get_connection()
+        sh = gc.open("fantasy_league_db")
+        # Get users
+        users_df = pd.DataFrame(sh.worksheet("users").get_all_records())
+        # Get scores
+        scores_df = pd.DataFrame(sh.sheet1.get_all_records())
+    except:
+        st.error("Database Connection Failed")
+        return
+
+    if users_df.empty:
+        st.info("No managers registered yet.")
+        return
+
+    # Build the Leaderboard Table
+    # Start with all registered managers
+    leaderboard = users_df[['manager_name']].copy()
+    leaderboard.columns = ['Manager']
+    
+    # Initialize Score Columns
+    leaderboard['Week 1'] = 0.0
+    leaderboard['Week 2'] = 0.0
+    leaderboard['Week 3'] = 0.0
+    leaderboard['Week 4'] = 0.0
+    leaderboard['Total'] = 0.0
+    
+    # If we have score data, map it
+    if not scores_df.empty:
+        for idx, row in leaderboard.iterrows():
+            mgr = row['Manager']
+            if mgr in scores_df['Manager'].values:
+                score_row = scores_df[scores_df['Manager'] == mgr].iloc[0]
+                # Safely get points or default to 0
+                w1 = float(score_row.get('Points_1', 0) or 0)
+                w2 = float(score_row.get('Points_2', 0) or 0)
+                w3 = float(score_row.get('Points_3', 0) or 0)
+                w4 = float(score_row.get('Points_4', 0) or 0)
+                
+                leaderboard.at[idx, 'Week 1'] = w1
+                leaderboard.at[idx, 'Week 2'] = w2
+                leaderboard.at[idx, 'Week 3'] = w3
+                leaderboard.at[idx, 'Week 4'] = w4
+                leaderboard.at[idx, 'Total'] = w1 + w2 + w3 + w4
+
+    # Sort by Total Points
+    leaderboard = leaderboard.sort_values(by='Total', ascending=False).reset_index(drop=True)
+    leaderboard.index += 1 # Rank starts at 1
+    
+    st.dataframe(
+        leaderboard, 
+        use_container_width=True,
+        height=600,
+        column_config={
+            "Manager": st.column_config.TextColumn("Manager", width="medium"),
+            "Week 1": st.column_config.NumberColumn("Week 1", format="%.1f"),
+            "Week 2": st.column_config.NumberColumn("Week 2", format="%.1f"),
+            "Week 3": st.column_config.NumberColumn("Week 3", format="%.1f"),
+            "Week 4": st.column_config.NumberColumn("Week 4", format="%.1f"),
+            "Total": st.column_config.ProgressColumn(
+                "Total Score", 
+                format="%.1f", 
+                min_value=0, 
+                max_value=1000 # Estimate max score for bar scaling
+            ),
+        }
+    )
+
+# --- 8. WAR ROOM PAGE ---
+def war_room_page():
+    apply_war_room_style()
+    render_navbar()
+    
     owner_name = st.session_state['manager_name']
 
     def get_sheet():
@@ -395,18 +486,9 @@ def main_game_app():
         st.sidebar.markdown("## 🛡️ Current Team")
         st.sidebar.info("Select players from the board.")
 
-    # --- HEADER ---
-    c1, c2 = st.columns([3, 1])
-    with c1: 
-        st.title(f"🏈 {owner_name}'s War Room")
-        st.caption(f"Drafting for: **WEEK {CURRENT_WEEK}**")
-    with c2: 
-        st.write("")
-        if st.button("LOG OUT", type="secondary"):
-            st.session_state['logged_in'] = False
-            st.session_state['roster_loaded'] = False
-            st.session_state['my_roster'] = []
-            st.rerun()
+    # --- TITLE ---
+    st.title(f"🏈 {owner_name}'s War Room")
+    st.caption(f"Drafting for: **WEEK {CURRENT_WEEK}**")
 
     # --- MULTIPLIERS ---
     def calculate_multipliers(manager, week_num):
@@ -548,6 +630,11 @@ def main_game_app():
                             st.success(f"Week {CURRENT_WEEK} Saved!")
             else: st.button("Roster Invalid", disabled=True, use_container_width=True)
 
-# --- 7. ROUTER ---
-if st.session_state['logged_in']: main_game_app()
-else: login_page()
+# --- 9. ROUTER ---
+if st.session_state['logged_in']:
+    if st.session_state['current_page'] == "War Room":
+        war_room_page()
+    elif st.session_state['current_page'] == "Leaderboard":
+        leaderboard_page()
+else:
+    login_page()
