@@ -12,7 +12,8 @@ st.set_page_config(layout="wide", page_title="Champions League")
 CURRENT_WEEK = 1 
 
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
-BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/YOUR_USERNAME_HERE/fantasy-playoff-app/main/football_intro.png"
+BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
+
 
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
@@ -570,3 +571,4 @@ def main_game_app():
 # --- 7. ROUTER ---
 if st.session_state['logged_in']: main_game_app()
 else: login_page()
+
