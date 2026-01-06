@@ -46,7 +46,7 @@ def set_bg_from_url(url):
          
          header {{visibility: hidden;}}
          
-         /* THE TITLE CLASS */
+         /* TITLE CLASS */
          .spartan-blood {{
              font-family: 'Nanum Brush Script', cursive;
              font-size: 130px !important;
@@ -76,8 +76,9 @@ def set_bg_from_url(url):
              color: white;
          }}
          
+         /* Expander Styling - Made wider/darker for rules */
          div[data-testid="stExpander"] {{
-             background-color: rgba(20, 20, 20, 0.95);
+             background-color: rgba(10, 10, 10, 0.98);
              border: 1px solid #8B0000;
              color: white;
          }}
@@ -186,11 +187,77 @@ def login_page():
     st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
     c_left, c_center, c_right = st.columns([1, 2, 1])
     with c_center:
-        with st.expander("📜 RULES OF THE ARENA (Click to Unroll)", expanded=False):
+        with st.expander("📜 RULES OF THE ARENA (Read Carefully)", expanded=False):
             st.markdown("""
-            **The Mission:** Survive the gauntlet. Draft the highest-scoring team across all 4 rounds.
-            **The Roster:** 10 Warriors (1 QB, 2 RB, 2 WR, 1 TE, 2 FLEX, 1 K, 1 DEF).
-            **The Multipliers 🚀:** Week 1: 100% | Week 2: 110% | Week 3: 125% | Week 4: 150% (Must play consecutively).
+            ### ⚔️ The Format
+            * **Duration:** The contest spans all **4 Weeks** of the NFL Playoffs.
+            * **Objective:** The Manager with the **Highest Cumulative Total Points** at the end of the Super Bowl wins.
+            * **Player Pool:** Players are **NOT unique**. Multiple managers can own the same player (e.g., everyone can start Josh Allen).
+            * **Weekly Drafting:** You select a fresh lineup every week. You can drop players and pick them back up later freely.
+            
+            ### 💰 Stakes & Payouts
+            * **Entry Fee:** **$50** per manager.
+            * **Payout Structure:**
+                * If **8+ Managers** join: Top **3 Places** paid.
+                * If **< 8 Managers** join: Top **2 Places** paid.
+            
+            ### 🚀 The Multiplier Strategy
+            Loyalty is rewarded. If you start the same player in consecutive weeks, their points are multiplied.
+            * **1st Week (or new player):** 100% Points (1.0x)
+            * **2 Consecutive Weeks:** 110% Points (1.1x)
+            * **3 Consecutive Weeks:** 125% Points (1.25x)
+            * **4 Consecutive Weeks:** 150% Points (1.5x)
+            *(Note: If you bench a player for a week and then bring them back for a later week, the streak resets to 1.0x)*
+
+            ### 📋 Roster Requirements (10 Players)
+            | Pos | Count |
+            | :--- | :--- |
+            | **QB** | 1 |
+            | **RB** | 2 |
+            | **WR** | 2 |
+            | **TE** | 1 |
+            | **FLEX** | 2 (RB/WR/TE) |
+            | **K** | 1 |
+            | **DEF** | 1 (Team Defense) |
+
+            ### 🏈 Scoring Settings
+            | Stat | Points |
+            | :--- | :--- |
+            | **Passing TD** | 6 pts |
+            | **2 PT Conversion** | 2 pts |
+            | **Passing Yards** | 1 pt per 30 yds |
+            | **Interception** | -3 pt |
+            | **Pick 6** | -3 pt |
+            | **QB Sack Taken** | -1 pt |
+            | **Rushing/Rec TD** | 6 pts |
+            | **2 PT Conversion** | 2 pts |
+            | **Rushing/Rec Yards** | 1 pt per 10 yds |
+            | **Reception** | 0.5 pts (Half-PPR) |
+            | **Fumble Lost** | -3 pts |
+            | **Fumble Rec. TD** | 6 pts |
+            | **Safety Taken (Rush/Rec.)** | -2 pts |
+            | **Punt Return (Over 10 yards)** | 1 pt per 10 yds |
+            | **Kick Return (Over 20 yards)** | 1 pt per 10 yds |
+            | **FG Made** | 3 pts |
+            | **FGM Yard Over 30** | 0.1 pts |
+            | **PAT Made** | 1 pt |
+            | **FG Missed** | -3 pts |
+            | **PAT Missed** | -3 pts |
+            | **Defense TD** | 6 pts |
+            | **0 Pts Allowed** | 12 pts |
+            | **1-6 Pts Allowed** | 9 pts |
+            | **7-13 Pts Allowed** | 6 pts |
+            | **14-20 Pts Allowed** | 3 pts |
+            | **21-27 Pts Allowed** | 0 pts |
+            | **28-34 Pts Allowed** | -3 pts |
+            | **35+ Pts Allowed** | -6 pts |
+            | **4th Down Stop** | 1 pt |
+            | **DEF Sack** | 1 pt |
+            | **DEF INT** | 3 pt |
+            | **DEF Fumble Recovery** | 3 pt |
+            | **Safety** | 5 pt |
+            | **Blocked Kick** | 6 pt |
+            | **2-PT Conv. Return** | 2 pt |
             """)
 
 # --- 6. MAIN APP ---
@@ -291,7 +358,6 @@ def main_game_app():
             elif m == 1.50: return f"{base} 🚀 1.5x"
             else: return base
         
-        # Display logic for Multiplier status
         def format_status(row):
             m = row['mult']
             if m > 1.0: return f"Active ({int(m*100)}%)"
@@ -299,8 +365,6 @@ def main_game_app():
 
         pos_df['ui_name'] = pos_df.apply(format_name, axis=1)
         pos_df['status'] = pos_df.apply(format_status, axis=1)
-        
-        # SORT ALPHABETICALLY (Since no points exist)
         pos_df = pos_df.sort_values(by=['team', 'name'], ascending=True)
         
         st.subheader(header_text)
@@ -366,16 +430,11 @@ def main_game_app():
                                 df_cloud = pd.concat([df_cloud, pd.DataFrame([new_row])], ignore_index=True)
                             idx = df_cloud.index[df_cloud['Manager'] == owner_name].tolist()[0]
                             df_cloud.at[idx, f'Roster_{current_week}'] = roster_str
-                            # Note: Points are 0 now because we don't have them in CSV
-                            # You will need to fill them in manually later!
                             df_cloud.at[idx, f'Points_{current_week}'] = 0 
                             sheet.clear()
                             sheet.update([df_cloud.columns.values.tolist()] + df_cloud.values.tolist())
                             st.success(f"Week {current_week} Saved!")
             else: st.button("Roster Invalid", disabled=True, use_container_width=True)
 
-# --- 7. ROUTER ---
 if st.session_state['logged_in']: main_game_app()
 else: login_page()
-
-
