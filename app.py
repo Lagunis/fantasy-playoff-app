@@ -342,9 +342,9 @@ def login_page():
             *(Note: If you bench a player for a week and then bring them back for a later week, the streak resets to 1.0x)*
 
              ### 📋 Roster Requirements (10 Players)
-            | Pos | Count |
-            | :--- | :--- |
-            | **QB** | 1 |
+             Pos | Count 
+             :--- | :--- 
+             **QB** | 1 
             | **RB** | 2 |
             | **WR** | 2 |
             | **TE** | 1 |
@@ -732,3 +732,4 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
+
