@@ -38,6 +38,7 @@ def set_bg_from_url(url):
          <style>
          @import url('https://fonts.googleapis.com/css2?family=Nanum+Brush+Script&display=swap');
          @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap');
+         @import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&display=swap');
 
          .stApp {{
              background-image: url("{url}");
@@ -70,7 +71,7 @@ def set_bg_from_url(url):
              margin-top: 5px;
          }}
 
-         /* LANDING PAGE LOGIN BOX (0.8 Opacity) */
+         /* LANDING PAGE LOGIN BOX */
          div[data-testid="stTabs"] {{
              background-color: rgba(0, 0, 0, 0.80) !important; 
              border: 2px solid #8B0000;
@@ -89,33 +90,49 @@ def set_bg_from_url(url):
          }}
          
          /* LANDING PAGE INPUTS */
-         /* Force labels to be white */
          label {{
              color: white !important;
          }}
-         /* Input text black */
          input {{
              color: black !important;
          }}
 
-         /* RULES BOX STYLING */
-         /* This ensures the markdown file looks clean and formatted */
-         .rules-container h1, .rules-container h2, .rules-container h3 {{
+         /* RULES BOX STYLING - FORCE WHITE TEXT & BETTER FONT */
+         div[data-testid="stExpander"] {{
+             background-color: rgba(15, 15, 15, 0.95) !important;
+             border: 1px solid #8B0000 !important;
+         }}
+         /* Target all text inside the expander content area */
+         div[data-testid="stExpander"] p, 
+         div[data-testid="stExpander"] li, 
+         div[data-testid="stExpander"] span,
+         div[data-testid="stExpander"] div {{
+             color: #FFFFFF !important; /* Pure White */
+             font-family: 'Roboto Slab', serif !important; /* Aesthetic Font */
+             font-size: 18px !important; /* Larger Size */
+             line-height: 1.6 !important;
+         }}
+         /* Target headers inside expander */
+         div[data-testid="stExpander"] h1, 
+         div[data-testid="stExpander"] h2, 
+         div[data-testid="stExpander"] h3 {{
              color: #FBBF24 !important; /* Gold Headers */
              font-family: 'Cinzel', serif !important;
-             margin-top: 10px;
+             margin-top: 15px !important;
+             margin-bottom: 10px !important;
          }}
-         .rules-container p, .rules-container li {{
-             color: #E0E0E0 !important; /* White Text */
-             font-size: 16px;
-             line-height: 1.5;
+         /* Target bold text inside expander */
+         div[data-testid="stExpander"] strong {{
+             color: #FBBF24 !important; /* Gold for emphasis */
+             font-weight: 700 !important;
          }}
-         .rules-container strong {{
-             color: #FFFFFF !important;
-         }}
-         div[data-testid="stExpander"] {{
-             background-color: rgba(10, 10, 10, 0.95);
-             border: 1px solid #8B0000;
+
+         /* LOGIN / SIGNUP BUTTONS (Red on Landing Page) */
+         /* We target buttons specifically within the tabs area */
+         div[data-testid="stTabs"] button[kind="primary"] {{
+             background-color: #991B1B !important; /* Dark Red */
+             color: white !important;
+             border: 1px solid #F87171 !important;
          }}
          </style>
          """,
@@ -139,15 +156,15 @@ def apply_war_room_style():
             text-shadow: 1px 1px 2px black;
         }
         
-        /* SIDEBAR INPUTS: Darker Font for Contrast */
+        /* SIDEBAR INPUTS: Dark Gray Font for Contrast */
         [data-testid="stSidebar"] input {
-            color: #000000 !important; /* PITCH BLACK */
-            font-weight: 900 !important; /* EXTRA BOLD */
+            color: #111827 !important; /* Very Dark Gray (Near Black) */
+            font-weight: 800 !important; /* Bold */
             background-color: #F1F5F9 !important; /* Very light grey background */
+            font-size: 15px !important;
         }
         
         /* LOGOUT BUTTON (Red) */
-        /* We target the Secondary button type */
         button[kind="secondary"] {
             background-color: #7F1D1D !important;
             color: white !important;
@@ -155,7 +172,6 @@ def apply_war_room_style():
         }
 
         /* SAVE ROSTER BUTTON (Green) */
-        /* We target the Primary button type */
         button[kind="primary"] {
             background-color: #15803d !important; /* Strong Green */
             color: white !important;
@@ -248,6 +264,7 @@ def login_page():
         with tab1:
             email = st.text_input("Email", key="login_email")
             password = st.text_input("Password", type='password', key="login_pass")
+            # Added type="primary" to match CSS selector
             if st.button("LOG IN", use_container_width=True, type="primary"):
                 is_valid, name = verify_login(email, password)
                 if is_valid:
@@ -262,7 +279,8 @@ def login_page():
             new_email = st.text_input("Email", key="signup_email")
             new_user_name = st.text_input("Manager Name", key="signup_name")
             new_password = st.text_input("Password", type='password', key="signup_pass")
-            if st.button("SIGN UP", use_container_width=True):
+            # Added type="primary" to make it Red
+            if st.button("SIGN UP", use_container_width=True, type="primary"):
                 if new_email and new_password and new_user_name:
                     success, msg = create_user(new_email, new_password, new_user_name)
                     if success: st.success(msg)
@@ -277,8 +295,8 @@ def login_page():
             if os.path.exists("rules.md"):
                 with open("rules.md", "r") as f:
                     rules_text = f.read()
-                # Wrap in a div to apply the clean CSS styling
-                st.markdown(f'<div class="rules-container">{rules_text}</div>', unsafe_allow_html=True)
+                # The CSS now handles the styling globally for this section
+                st.markdown(rules_text)
             else:
                 st.warning("rules.md file not found.")
 
@@ -346,8 +364,6 @@ def main_game_app():
         st.sidebar.markdown("## 🛡️ Current Team")
         st.sidebar.divider()
         
-        # KEY FIX: The key includes the VALUE. This forces Streamlit to redraw 
-        # the widget when the value changes, fixing the persistence bug.
         def render_slot(label, players, index):
             val = players[index] if len(players) > index else "---"
             st.sidebar.text_input(label, val, disabled=True, key=f"slot_{label}_{index}_{val}")
