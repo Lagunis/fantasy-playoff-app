@@ -1,5 +1,7 @@
 # LANDING PAGE IMAGE LINK:  "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
+
+
 import streamlit as st
 import pandas as pd
 import gspread
@@ -88,25 +90,26 @@ def set_bg_from_url(url):
          label {{ color: white !important; }}
          input {{ color: black !important; }}
 
-         /* RULES BOX FIXES */
-         /* Force the expander background to be dark */
+         /* RULES BOX STYLING */
          div[data-testid="stExpander"] {{
-             background-color: #0F172A !important;
+             background-color: rgba(15, 15, 15, 0.95) !important;
              border: 1px solid #8B0000 !important;
-             color: white !important;
          }}
-         div[data-testid="stExpander"] p, li, span, div {{
-            color: #E2E8F0 !important;
+         div[data-testid="stExpander"] p, 
+         div[data-testid="stExpander"] li {{
+             color: #E0E0E0 !important;
+             font-family: 'Roboto Slab', serif !important;
+             font-size: 16px !important;
          }}
-         /* Hide the weird "keyboard_arrow_down" text artifact */
-         div[data-testid="stExpander"] summary span {{
-             display: none !important; 
+         div[data-testid="stExpander"] h3 {{
+             color: #FBBF24 !important; /* Gold Headers */
+             font-family: 'Cinzel', serif !important;
+             margin-top: 15px !important;
          }}
-         /* Re-add a manual arrow if needed, but usually clicking the box works fine */
          
-         /* LOGIN / SIGNUP BUTTONS */
+         /* LOGIN BUTTONS (Red) */
          div[data-testid="stTabs"] button[kind="primary"] {{
-             background-color: #991B1B !important;
+             background-color: #991B1B !important; 
              color: white !important;
              border: 1px solid #F87171 !important;
          }}
@@ -132,37 +135,51 @@ def apply_war_room_style():
             text-shadow: 1px 1px 2px black;
         }
         
-        /* SIDEBAR INPUTS: FIXED TO BE DARK GRAY */
-        div[data-testid="stSidebar"] input {
-            color: #111827 !important; /* Almost Black */
-            font-weight: 900 !important; /* Extra Bold */
-            background-color: #F1F5F9 !important; /* Light Grey Background */
-            -webkit-text-fill-color: #111827 !important; /* Force override for Webkit */
-            opacity: 1 !important; /* Ensure no transparency */
-        }
+        /* --- BUTTON COLOR CODING --- */
         
-        /* LOGOUT BUTTON */
-        button[kind="secondary"] {
-            background-color: #7F1D1D !important;
-            color: white !important;
-            border: 1px solid #EF4444 !important;
-        }
-
-        /* SAVE ROSTER BUTTON */
+        /* 1. PURPLE (Active Nav Button) */
         button[kind="primary"] {
-            background-color: #15803d !important; 
+            background-color: #7C3AED !important; /* Violet */
             color: white !important;
-            border: 1px solid #4ade80 !important;
-            font-size: 18px !important;
+            border: 1px solid #A78BFA !important;
         }
         
-        /* NAV BAR BUTTONS */
-        /* We create a special class of buttons for navigation */
-        div[data-testid="stHorizontalBlock"] button {
-            border: 1px solid #334155;
+        /* 2. GRAY (Inactive Nav Button) */
+        button[kind="secondary"] {
+            background-color: #334155 !important; /* Slate 700 */
+            color: #E2E8F0 !important;
+            border: 1px solid #475569 !important;
         }
 
-        /* Tables */
+        /* 3. SPECIFIC OVERRIDES FOR ACTIONS */
+        
+        /* Logout & Reset (Red) - We target by exact text content usually, 
+           but CSS doesn't support text selectors easily. 
+           We will use inline styles or specific container targeting where possible 
+           or rely on the fact that Reset/Logout are usually Secondary buttons in specific columns.
+           
+           Actually, let's keep it simple: 
+           Nav uses Primary/Secondary (Purple/Gray).
+           Action buttons (Save) will need a specific override via Streamlit help 
+           or we accept them as Purple for "Go".
+           
+           Wait, user specifically asked for Purple for Active Nav.
+           Let's hack the Save button to be Green specifically.
+        */
+        
+        /* Force the specific "Save" button (last button on page usually) to Green 
+           is risky. Instead, we'll assume Primary = Purple (Active) 
+           and Secondary = Gray (Inactive). 
+           
+           BUT, for the Save button, we really want Green.
+           We can wrap the Save button in a container with a unique styling? No.
+           
+           Let's stick to the user request: Nav = Purple/Gray.
+           I will try to force the SAVE button to be Green using a data-testid selector workaround if possible,
+           otherwise it will be Purple (Active).
+        */
+
+        /* TABLES & METRICS */
         [data-testid="stDataEditor"] {
             border: 1px solid #334155;
             border-radius: 5px;
@@ -218,26 +235,25 @@ if 'logged_in' not in st.session_state: st.session_state['logged_in'] = False
 if 'manager_name' not in st.session_state: st.session_state['manager_name'] = ""
 if 'my_roster' not in st.session_state: st.session_state['my_roster'] = []
 if 'roster_loaded' not in st.session_state: st.session_state['roster_loaded'] = False
-if 'current_page' not in st.session_state: st.session_state['current_page'] = "War Room" # Track which page we are on
+if 'current_page' not in st.session_state: st.session_state['current_page'] = "War Room" 
 
 # --- 5. PAGE NAVIGATION COMPONENT ---
 def render_navbar():
-    """Renders the top navigation to switch between pages"""
     c1, c2, c3, c4 = st.columns([1, 1, 4, 1])
     
     with c1:
-        # If button clicked, change state to War Room
+        # Active = Primary (Purple), Inactive = Secondary (Gray)
         if st.button("⚔️ WAR ROOM", use_container_width=True, type="primary" if st.session_state['current_page'] == "War Room" else "secondary"):
             st.session_state['current_page'] = "War Room"
             st.rerun()
             
     with c2:
-        # If button clicked, change state to Leaderboard
         if st.button("🏛️ COLOSSEUM", use_container_width=True, type="primary" if st.session_state['current_page'] == "Leaderboard" else "secondary"):
             st.session_state['current_page'] = "Leaderboard"
             st.rerun()
             
     with c4:
+        # Keep Logout Gray
         if st.button("LOG OUT", use_container_width=True, type="secondary"):
             st.session_state['logged_in'] = False
             st.session_state['roster_loaded'] = False
@@ -286,13 +302,11 @@ def login_page():
             new_email = st.text_input("Email", key="signup_email")
             new_user_name = st.text_input("Manager Name", key="signup_name")
             new_password = st.text_input("Password", type='password', key="signup_pass")
-            # AUTO-LOGIN LOGIC ADDED HERE
             if st.button("SIGN UP", use_container_width=True, type="primary"):
                 if new_email and new_password and new_user_name:
                     success, msg = create_user(new_email, new_password, new_user_name)
                     if success: 
                         st.success(msg)
-                        # Auto-Login
                         st.session_state['logged_in'] = True
                         st.session_state['manager_name'] = new_user_name
                         st.session_state['roster_loaded'] = False
@@ -304,15 +318,77 @@ def login_page():
     st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
     c_left, c_center, c_right = st.columns([1, 2, 1])
     with c_center:
-        with st.expander("📜 RULES OF THE ARENA (Read Carefully)", expanded=False):
-            if os.path.exists("rules.md"):
-                with open("rules.md", "r") as f:
-                    rules_text = f.read()
-                st.markdown(rules_text)
-            else:
-                st.warning("rules.md file not found.")
+       with st.expander("📜 RULES OF THE ARENA (Read Carefully)", expanded=False):
+            # HARDCODED RULES
+            st.markdown("""
+            ### ⚔️ The Format
+            * **Duration:** The contest spans all **4 Weeks** of the NFL Playoffs.
+            * **Objective:** The Manager with the **Highest Cumulative Total Points** at the end of the Super Bowl wins.
+            * **Player Pool:** Players are **NOT unique**. Multiple managers can own the same player (e.g., everyone can start Josh Allen).
+            * **Weekly Drafting:** You select a fresh lineup every week. You can drop players and pick them back up later freely.
+            
+             ### 💰 Stakes & Payouts
+            * **Entry Fee:** **$50** per manager.
+            * **Payout Structure:**
+                * If **8+ Managers** join: Top **3 Places** paid.
+                * If **< 8 Managers** join: Top **2 Places** paid.
+            
+             ### 🚀 The Multiplier Strategy
+            Loyalty is rewarded. If you start the same player in consecutive weeks, their points are multiplied.
+            * **Player's 1st Week:** 100% Points (1.0x)
+            * **Player's 2nd Straight Week:** 110% Points (1.1x)
+            * **Player's 3rd Straight Week:** 125% Points (1.25x)
+            * **Player's 4th Straight Week:** 150% Points (1.5x)
+            *(Note: If you bench a player for a week and then bring them back for a later week, the streak resets to 1.0x)*
 
-# --- 7. LEADERBOARD PAGE ("THE COLOSSEUM") ---
+             ### 📋 Roster Requirements (10 Players)
+            | Pos | Count |
+            | :--- | :--- |
+            | **QB** | 1 |
+            | **RB** | 2 |
+            | **WR** | 2 |
+            | **TE** | 1 |
+            | **FLEX** | 2 (RB/WR/TE) |
+            | **K** | 1 |
+            | **DEF** | 1 (Team Defense) |
+
+             ### 🏈 Scoring Settings
+            | Stat | Points |
+            | :--- | :--- |
+            | **Passing TD** | 6 pts |
+            | **2 PT Conversion** | 2 pts |
+            | **Passing Yards** | 1 pt per 30 yds |
+            | **Interception** | -3 pt |
+            | **Pick 6** | -3 pt |
+            | **QB Sack Taken** | -1 pt |
+            | **Rushing/Rec TD** | 6 pts |
+            | **2 PT Conversion** | 2 pts |
+            | **Rushing/Rec Yards** | 1 pt per 10 yds |
+            | **Reception** | 0.5 pts (Half-PPR) |
+            | **Fumble Lost** | -3 pts |
+            | **Fumble Rec. TD** | 6 pts |
+            | **Safety Taken (Rush/Rec.)** | -2 pts |
+            | **Punt Return (Over 10 yards)** | 1 pt per 10 yds |
+            | **Kick Return (Over 20 yards)** | 1 pt per 10 yds |
+            | **FG Made** | 3 pts |
+            | **FGM Yard Over 30** | 0.1 pts |
+            | **PAT Made** | 1 pt |
+            | **FG Missed** | -3 pts |
+            | **PAT Missed** | -3 pts |
+            | **Defense TD** | 6 pts |
+            | **0 Pts Allowed** | 12 pts |
+            | **1-6 Pts Allowed** | 9 pts |
+            | **7-13 Pts Allowed** | 6 pts |
+            | **14-20 Pts Allowed** | 3 pts |
+            | **21-27 Pts Allowed** | 0 pts |
+            | **28-34 Pts Allowed** | -3 pts |
+            | **35+ Pts Allowed** | -6 pts |
+            | **4th Down Stop** | 1 pt |
+            | **DEF Sack** | 1 pt |
+            | **DEF INT** | 3 pt |
+            """)
+
+# --- 7. LEADERBOARD PAGE ---
 def leaderboard_page():
     apply_war_room_style()
     render_navbar()
@@ -320,13 +396,10 @@ def leaderboard_page():
     st.title("🏛️ The Colosseum")
     st.caption("Current Standings & Manager Directory")
     
-    # Fetch Data
     try:
         gc = get_connection()
         sh = gc.open("fantasy_league_db")
-        # Get users
         users_df = pd.DataFrame(sh.worksheet("users").get_all_records())
-        # Get scores
         scores_df = pd.DataFrame(sh.sheet1.get_all_records())
     except:
         st.error("Database Connection Failed")
@@ -336,25 +409,20 @@ def leaderboard_page():
         st.info("No managers registered yet.")
         return
 
-    # Build the Leaderboard Table
-    # Start with all registered managers
     leaderboard = users_df[['manager_name']].copy()
     leaderboard.columns = ['Manager']
     
-    # Initialize Score Columns
     leaderboard['Week 1'] = 0.0
     leaderboard['Week 2'] = 0.0
     leaderboard['Week 3'] = 0.0
     leaderboard['Week 4'] = 0.0
     leaderboard['Total'] = 0.0
     
-    # If we have score data, map it
     if not scores_df.empty:
         for idx, row in leaderboard.iterrows():
             mgr = row['Manager']
             if mgr in scores_df['Manager'].values:
                 score_row = scores_df[scores_df['Manager'] == mgr].iloc[0]
-                # Safely get points or default to 0
                 w1 = float(score_row.get('Points_1', 0) or 0)
                 w2 = float(score_row.get('Points_2', 0) or 0)
                 w3 = float(score_row.get('Points_3', 0) or 0)
@@ -366,9 +434,8 @@ def leaderboard_page():
                 leaderboard.at[idx, 'Week 4'] = w4
                 leaderboard.at[idx, 'Total'] = w1 + w2 + w3 + w4
 
-    # Sort by Total Points
     leaderboard = leaderboard.sort_values(by='Total', ascending=False).reset_index(drop=True)
-    leaderboard.index += 1 # Rank starts at 1
+    leaderboard.index += 1 
     
     st.dataframe(
         leaderboard, 
@@ -376,16 +443,7 @@ def leaderboard_page():
         height=600,
         column_config={
             "Manager": st.column_config.TextColumn("Manager", width="medium"),
-            "Week 1": st.column_config.NumberColumn("Week 1", format="%.1f"),
-            "Week 2": st.column_config.NumberColumn("Week 2", format="%.1f"),
-            "Week 3": st.column_config.NumberColumn("Week 3", format="%.1f"),
-            "Week 4": st.column_config.NumberColumn("Week 4", format="%.1f"),
-            "Total": st.column_config.ProgressColumn(
-                "Total Score", 
-                format="%.1f", 
-                min_value=0, 
-                max_value=1000 # Estimate max score for bar scaling
-            ),
+            "Total": st.column_config.ProgressColumn("Total Score", format="%.1f", min_value=0, max_value=1000),
         }
     )
 
@@ -411,13 +469,11 @@ def war_room_page():
         st.error("No players.csv found")
         st.stop()
 
-    # --- AUTO-LOAD LOGIC ---
     if not st.session_state['roster_loaded']:
         try:
             sheet = get_sheet()
             records = sheet.get_all_records()
             df_cloud = pd.DataFrame(records)
-            
             target_col = f"Roster_{CURRENT_WEEK}"
             
             if not df_cloud.empty and owner_name in df_cloud['Manager'].values:
@@ -438,8 +494,18 @@ def war_room_page():
         
         st.session_state['roster_loaded'] = True
 
-    # --- SIDEBAR: CURRENT TEAM DISPLAY ---
+    # --- SIDEBAR LOGIC ---
     current_roster_names = st.session_state['my_roster']
+    
+    st.sidebar.markdown("## 🛡️ Current Team")
+    st.sidebar.divider()
+
+    # --- RESET BUTTON ---
+    if st.sidebar.button("⚠️ Reset Roster", use_container_width=True, type="secondary"):
+        st.session_state['my_roster'] = []
+        st.rerun()
+    st.sidebar.write("") # spacer
+
     if current_roster_names:
         roster_df = all_players[all_players['name'].isin(current_roster_names)]
         
@@ -452,12 +518,18 @@ def war_room_page():
         
         flex_pool = rbs[2:] + wrs[2:] + tes[1:] 
         
-        st.sidebar.markdown("## 🛡️ Current Team")
-        st.sidebar.divider()
-        
+        # VISIBILITY FIX: Using HTML/Markdown blocks instead of disabled inputs
         def render_slot(label, players, index):
             val = players[index] if len(players) > index else "---"
-            st.sidebar.text_input(label, val, disabled=True, key=f"slot_{label}_{index}_{val}")
+            # CSS Block for Sidebar Items
+            st.sidebar.markdown(f"""
+            <div style="margin-bottom: 5px;">
+                <span style="color: #94A3B8; font-size: 12px; font-weight: bold;">{label}</span>
+                <div style="background-color: #F1F5F9; color: #111827; padding: 8px; border-radius: 4px; font-weight: 800; font-size: 14px; border: 1px solid #CBD5E1;">
+                    {val}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
         render_slot("QB", qbs, 0)
         render_slot("RB 1", rbs, 0)
@@ -469,8 +541,21 @@ def war_room_page():
         f1 = flex_pool[0] if len(flex_pool) > 0 else "---"
         f2 = flex_pool[1] if len(flex_pool) > 1 else "---"
         
-        st.sidebar.text_input("FLEX 1", f1, disabled=True, key=f"flex_1_{f1}")
-        st.sidebar.text_input("FLEX 2", f2, disabled=True, key=f"flex_2_{f2}")
+        # Manually render Flex slots
+        st.sidebar.markdown(f"""
+        <div style="margin-bottom: 5px;">
+            <span style="color: #94A3B8; font-size: 12px; font-weight: bold;">FLEX 1</span>
+            <div style="background-color: #F1F5F9; color: #111827; padding: 8px; border-radius: 4px; font-weight: 800; font-size: 14px; border: 1px solid #CBD5E1;">
+                {f1}
+            </div>
+        </div>
+        <div style="margin-bottom: 5px;">
+            <span style="color: #94A3B8; font-size: 12px; font-weight: bold;">FLEX 2</span>
+            <div style="background-color: #F1F5F9; color: #111827; padding: 8px; border-radius: 4px; font-weight: 800; font-size: 14px; border: 1px solid #CBD5E1;">
+                {f2}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
         render_slot("K", ks, 0)
         render_slot("DEF", defs, 0)
@@ -483,10 +568,9 @@ def war_room_page():
             st.sidebar.error("Too many FLEX players!")
 
     else:
-        st.sidebar.markdown("## 🛡️ Current Team")
         st.sidebar.info("Select players from the board.")
 
-    # --- TITLE ---
+    # --- MAIN CONTENT ---
     st.title(f"🏈 {owner_name}'s War Room")
     st.caption(f"Drafting for: **WEEK {CURRENT_WEEK}**")
 
@@ -607,6 +691,16 @@ def war_room_page():
         with d3:
             valid_roster = (qb==1 and rb>=2 and wr>=2 and te>=1 and flex<=2 and k==1 and def_==1 and len(current_selection)==10)
             if valid_roster:
+                # INLINE STYLE HACK FOR GREEN BUTTON since CSS primary override affects Nav
+                st.markdown("""
+                <style>
+                div[data-testid="stContainer"] button[kind="primary"] {
+                    background-color: #15803d !important;
+                    border-color: #22c55e !important;
+                }
+                </style>
+                """, unsafe_allow_html=True)
+                
                 if st.button(f"✅ SAVE ROSTER", type="primary", use_container_width=True, key="save_btn"):
                     with st.spinner("Saving..."):
                         sheet = get_sheet()
