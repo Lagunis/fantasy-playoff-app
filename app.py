@@ -9,11 +9,10 @@ import os
 st.set_page_config(layout="wide", page_title="Champions League")
 
 # --- ⚙️ COMMISSIONER CONTROLS ⚙️ ---
-# CHANGE THIS NUMBER (1-4) TO ADVANCE THE LEAGUE WEEK
 CURRENT_WEEK = 1 
 
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
-BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
+BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/YOUR_USERNAME_HERE/fantasy-playoff-app/main/football_intro.png"
 
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
@@ -32,7 +31,7 @@ def get_connection():
     gc = gspread.service_account_from_dict(creds)
     return gc
 
-# --- 2. CSS & STYLING ---
+# --- 2. CSS & STYLING (Soft Dark Blue Theme) ---
 def set_bg_from_url(url):
     st.markdown(
          f"""
@@ -70,20 +69,11 @@ def set_bg_from_url(url):
              font-weight: 700;
              margin-top: 5px;
          }}
-
-         div[data-testid="stTabs"] {{
-             background-color: rgba(0, 0, 0, 0.85);
-             border: 2px solid #8B0000;
-             border-radius: 10px;
-             padding: 20px;
-             box-shadow: 0 0 30px rgba(139, 0, 0, 0.4);
-             color: white;
-         }}
          
          div[data-testid="stExpander"] {{
-             background-color: rgba(10, 10, 10, 0.98);
-             border: 1px solid #8B0000;
-             color: white;
+             background-color: rgba(15, 23, 42, 0.95); /* Dark Slate Blue */
+             border: 1px solid #334155;
+             color: #e2e8f0;
          }}
          
          input {{ color: black; }}
@@ -97,45 +87,62 @@ def apply_war_room_style():
     st.markdown(
         """
         <style>
+        /* 1. SOFT DARK BLUE BACKGROUND */
         .stApp {
             background-image: none !important;
-            background-color: #121212 !important; 
+            background-color: #0F172A !important; /* Slate 900 - Soft Dark Blue */
         }
+
+        /* 2. TEXT COLOR */
         h1, h2, h3, h4, h5, h6, p, li, div, span {
-            color: #E0E0E0 !important; 
+            color: #E2E8F0 !important; /* Soft White/Grey */
         }
+        
+        /* 3. CUSTOM HEADERS */
         h1, h2, h3 {
             font-family: 'Cinzel', serif !important;
-            color: #D22B2B !important; 
+            color: #60A5FA !important; /* Light Blue for headers to pop against dark blue */
             text-shadow: 1px 1px 2px black;
         }
+
+        /* 4. FIX INPUTS & SELECTBOXES */
         .stSelectbox div[data-baseweb="select"] > div {
-            background-color: #262626 !important; 
+            background-color: #1E293B !important; /* Slate 800 */
             color: white !important;
-            border: 1px solid #444;
+            border: 1px solid #334155;
         }
+        
+        /* 5. FIX DATA EDITOR / TABLES */
         [data-testid="stDataEditor"] {
-            border: 1px solid #444;
+            border: 1px solid #334155;
             border-radius: 5px;
-            background-color: #1E1E1E;
+            background-color: #1E293B; /* Slate 800 */
         }
+        
+        /* 6. METRICS (The Scores) */
         [data-testid="stMetricValue"] {
-            color: #FFD700 !important; 
+            color: #FBBF24 !important; /* Amber Gold */
             font-size: 36px !important;
         }
         [data-testid="stMetricLabel"] {
-            color: #AAAAAA !important;
+            color: #94A3B8 !important; /* Slate 400 */
         }
+
+        /* 7. BUTTONS */
         button {
             border-radius: 5px !important;
             font-weight: bold !important;
         }
-        .streamlit-expanderHeader {
-            background-color: #262626 !important;
-            color: white !important;
+        
+        /* 8. SIDEBAR */
+        section[data-testid="stSidebar"] {
+            background-color: #0B1120 !important; /* Very Dark Blue */
+            border-right: 1px solid #334155;
         }
+        
+        /* 9. CHECKBOXES */
         label[data-baseweb="checkbox"] {
-            color: white !important;
+            color: #E2E8F0 !important;
         }
         </style>
         """,
@@ -176,7 +183,6 @@ def verify_login(email, password):
 if 'logged_in' not in st.session_state: st.session_state['logged_in'] = False
 if 'manager_name' not in st.session_state: st.session_state['manager_name'] = ""
 if 'my_roster' not in st.session_state: st.session_state['my_roster'] = []
-# New: Track if we have already fetched the roster for this session
 if 'roster_loaded' not in st.session_state: st.session_state['roster_loaded'] = False
 
 # --- 5. LANDING PAGE ---
@@ -209,7 +215,6 @@ def login_page():
                 if is_valid:
                     st.session_state['logged_in'] = True
                     st.session_state['manager_name'] = name
-                    # Reset roster load state on new login
                     st.session_state['roster_loaded'] = False 
                     st.rerun()
                 else:
@@ -324,7 +329,6 @@ def main_game_app():
         st.stop()
 
     # --- AUTO-LOAD LOGIC ---
-    # This runs ONLY ONCE when the user first enters the War Room
     if not st.session_state['roster_loaded']:
         try:
             sheet = get_sheet()
@@ -336,15 +340,12 @@ def main_game_app():
             if not df_cloud.empty and owner_name in df_cloud['Manager'].values:
                 user_row = df_cloud[df_cloud['Manager'] == owner_name].iloc[0]
                 if target_col in user_row and user_row[target_col]:
-                    # Found a saved roster for this week!
                     saved_str = user_row[target_col]
                     saved_raw_names = saved_str.split(", ")
-                    # Filter to ensure valid names
                     restored_roster = all_players[all_players['name'].isin(saved_raw_names)]['name'].tolist()
                     st.session_state['my_roster'] = restored_roster
                     st.toast(f"Week {CURRENT_WEEK} Roster Auto-Loaded", icon="📂")
                 else:
-                    # No roster saved yet for this week
                     st.session_state['my_roster'] = []
                     st.toast(f"Welcome to Week {CURRENT_WEEK}. Draft your squad.", icon="⚔️")
             else:
@@ -352,9 +353,61 @@ def main_game_app():
         except Exception as e:
             st.error(f"Auto-load failed: {e}")
         
-        # Mark as loaded so we don't overwrite user changes on next rerun
         st.session_state['roster_loaded'] = True
 
+    # --- SIDEBAR: CURRENT TEAM DISPLAY ---
+    # Smart logic to fill slots based on selections
+    current_roster_names = st.session_state['my_roster']
+    if current_roster_names:
+        roster_df = all_players[all_players['name'].isin(current_roster_names)]
+        
+        # Categorize
+        qbs = roster_df[roster_df['position'] == 'QB']['display_name'].tolist()
+        rbs = roster_df[roster_df['position'] == 'RB']['display_name'].tolist()
+        wrs = roster_df[roster_df['position'] == 'WR']['display_name'].tolist()
+        tes = roster_df[roster_df['position'] == 'TE']['display_name'].tolist()
+        ks = roster_df[roster_df['position'] == 'K']['display_name'].tolist()
+        defs = roster_df[roster_df['position'] == 'DEF']['display_name'].tolist()
+        
+        # Determine Flex
+        flex_pool = rbs[2:] + wrs[2:] + tes[1:] # Players not in starting slots
+        
+        st.sidebar.markdown("## 🛡️ Current Team")
+        st.sidebar.divider()
+        
+        # Function to render a slot
+        def render_slot(label, players, index):
+            val = players[index] if len(players) > index else "---"
+            st.sidebar.text_input(label, val, disabled=True, key=f"slot_{label}_{index}")
+
+        render_slot("QB", qbs, 0)
+        render_slot("RB 1", rbs, 0)
+        render_slot("RB 2", rbs, 1)
+        render_slot("WR 1", wrs, 0)
+        render_slot("WR 2", wrs, 1)
+        render_slot("TE", tes, 0)
+        
+        # FLEX Logic
+        f1 = flex_pool[0] if len(flex_pool) > 0 else "---"
+        f2 = flex_pool[1] if len(flex_pool) > 1 else "---"
+        
+        st.sidebar.text_input("FLEX 1", f1, disabled=True)
+        st.sidebar.text_input("FLEX 2", f2, disabled=True)
+        
+        render_slot("K", ks, 0)
+        render_slot("DEF", defs, 0)
+        
+        # Validation Count
+        count = len(current_roster_names)
+        if count == 10: st.sidebar.success(f"{count}/10 Players Selected")
+        else: st.sidebar.warning(f"{count}/10 Players Selected")
+        
+        if len(flex_pool) > 2:
+            st.sidebar.error("Too many FLEX players!")
+
+    else:
+        st.sidebar.markdown("## 🛡️ Current Team")
+        st.sidebar.info("Select players from the board.")
 
     # --- HEADER ---
     c1, c2 = st.columns([3, 1])
@@ -398,7 +451,6 @@ def main_game_app():
         except: pass
         return multipliers
 
-    # Calculate multipliers for CURRENT_WEEK
     player_multipliers = calculate_multipliers(owner_name, CURRENT_WEEK)
     dashboard_placeholder = st.container()
     st.divider()
@@ -406,7 +458,9 @@ def main_game_app():
     # --- TABLES ---
     def render_position_table(position_name, header_text):
         pos_df = all_players[all_players['position'] == position_name].copy()
-        if 'my_roster' not in st.session_state: st.session_state['my_roster'] = []
+        
+        # BUG FIX: Use st.session_state['my_roster'] to set the checkbox state,
+        # but ensure we don't force a 'default' if the user is interacting.
         pos_df['Draft'] = pos_df['name'].isin(st.session_state['my_roster'])
         pos_df['mult'] = pos_df['name'].map(player_multipliers)
         
@@ -428,16 +482,24 @@ def main_game_app():
         pos_df = pos_df.sort_values(by=['team', 'name'], ascending=True)
         
         st.subheader(header_text)
+        
+        # THE FIX: We use a key to make the widget distinct.
+        # We process the output immediately below.
         edited_df = st.data_editor(
             pos_df[['Draft', 'ui_name', 'status']], 
-            key=f"editor_{position_name}", hide_index=True,
+            key=f"editor_{position_name}", 
+            hide_index=True,
             column_config={
                 "Draft": st.column_config.CheckboxColumn("Pick", width="small", default=False),
                 "ui_name": st.column_config.TextColumn("Player", width="large"),
                 "status": st.column_config.TextColumn("Bonus", width="small")
             },
-            disabled=["ui_name", "status"], height=450
+            disabled=["ui_name", "status"], 
+            height=450
         )
+        
+        # Return the list of SELECTED raw names from this table
+        # We have to map UI Name back to Raw Name
         selected_ui_names = edited_df[edited_df['Draft'] == True]['ui_name'].tolist()
         return pos_df[pos_df['ui_name'].isin(selected_ui_names)]['name'].tolist()
 
@@ -449,8 +511,13 @@ def main_game_app():
     with c5: sel_k = render_position_table("K", "K (Pick 1)")
     with c6: sel_def = render_position_table("DEF", "DEF (Pick 1)")
 
+    # Combine selections from ALL tables to form the new master list
     current_selection = sel_qb + sel_rb + sel_wr + sel_te + sel_k + sel_def
-    st.session_state['my_roster'] = current_selection
+    
+    # UPDATE STATE INSTANTLY
+    if current_selection != st.session_state['my_roster']:
+        st.session_state['my_roster'] = current_selection
+        st.rerun()
 
     # --- DASHBOARD & SAVE ---
     with dashboard_placeholder:
@@ -487,14 +554,12 @@ def main_game_app():
                             records = sheet.get_all_records()
                             df_cloud = pd.DataFrame(records)
                             
-                            # Ensure manager exists
                             if df_cloud.empty or owner_name not in df_cloud['Manager'].values:
                                 new_row = {"Manager": owner_name}
                                 df_cloud = pd.concat([df_cloud, pd.DataFrame([new_row])], ignore_index=True)
                             
                             idx = df_cloud.index[df_cloud['Manager'] == owner_name].tolist()[0]
                             
-                            # Save to CURRENT_WEEK column
                             df_cloud.at[idx, f'Roster_{CURRENT_WEEK}'] = roster_str
                             df_cloud.at[idx, f'Points_{CURRENT_WEEK}'] = 0 
                             
@@ -506,4 +571,5 @@ def main_game_app():
 # --- 7. ROUTER ---
 if st.session_state['logged_in']: main_game_app()
 else: login_page()
+
 
