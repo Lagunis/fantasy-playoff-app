@@ -14,7 +14,6 @@ CURRENT_WEEK = 1
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
 BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
-
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
@@ -73,11 +72,10 @@ def set_bg_from_url(url):
 
          /* LANDING PAGE LOGIN BOX (The Shadow Box) */
          div[data-testid="stTabs"] {{
-             background-color: rgba(0, 0, 0, 0.95) !important; /* Almost black for max contrast */
+             background-color: rgba(0, 0, 0, 0.95) !important;
              border: 2px solid #8B0000;
              border-radius: 15px;
              padding: 25px;
-             /* Heavy Red Shadow for Contrast */
              box-shadow: 0 0 40px rgba(139, 0, 0, 0.6); 
              color: white;
          }}
@@ -89,7 +87,6 @@ def set_bg_from_url(url):
              color: white;
          }}
          
-         /* Input text color for landing page */
          input {{ color: black; }}
          </style>
          """,
@@ -100,58 +97,39 @@ def apply_war_room_style():
     st.markdown(
         """
         <style>
-        /* 1. WAR ROOM BACKGROUND */
         .stApp {
             background-image: none !important;
-            background-color: #0F172A !important; /* Dark Slate Blue */
+            background-color: #0F172A !important; 
         }
-
-        /* 2. GENERAL TEXT COLOR */
-        /* We target headers and paragraphs, but NOT 'div' generically to avoid breaking tables */
         h1, h2, h3, h4, h5, h6, p, li, label {
-            color: #E2E8F0 !important; /* Soft White */
+            color: #E2E8F0 !important;
         }
-        
         h1, h2, h3 {
             font-family: 'Cinzel', serif !important;
-            color: #60A5FA !important; /* Light Blue Headers */
+            color: #60A5FA !important;
             text-shadow: 1px 1px 2px black;
         }
-
-        /* 3. SIDEBAR "CURRENT TEAM" INPUTS */
-        /* Force the text INSIDE the sidebar white boxes to be Black and Bold */
         [data-testid="stSidebar"] input {
             color: #000000 !important;
             font-weight: 900 !important;
         }
-
-        /* 4. LOGOUT BUTTON (High Contrast) */
-        /* Targets the button in the top right */
         div[data-testid="stButton"] button {
-            background-color: #991B1B !important; /* Dark Red */
+            background-color: #991B1B !important;
             color: white !important;
             border: 1px solid #F87171 !important;
         }
-        
-        /* 5. DATA EDITOR (Tables) */
         [data-testid="stDataEditor"] {
             border: 1px solid #334155;
             border-radius: 5px;
             background-color: #1E293B; 
         }
-        
-        /* 6. METRICS */
         [data-testid="stMetricValue"] {
-            color: #FBBF24 !important; /* Gold */
+            color: #FBBF24 !important;
         }
-        
-        /* 7. SIDEBAR BACKGROUND */
         section[data-testid="stSidebar"] {
             background-color: #0B1120 !important;
             border-right: 1px solid #334155;
         }
-        
-        /* 8. CHECKBOX LABELS */
         label[data-baseweb="checkbox"] {
             color: #E2E8F0 !important;
         }
@@ -247,77 +225,13 @@ def login_page():
     c_left, c_center, c_right = st.columns([1, 2, 1])
     with c_center:
         with st.expander("📜 RULES OF THE ARENA (Read Carefully)", expanded=False):
-            st.markdown("""
-            ### ⚔️ The Format
-            * **Duration:** The contest spans all **4 Weeks** of the NFL Playoffs.
-            * **Objective:** The Manager with the **Highest Cumulative Total Points** at the end of the Super Bowl wins.
-            * **Player Pool:** Players are **NOT unique**. Multiple managers can own the same player (e.g., everyone can start Josh Allen).
-            * **Weekly Drafting:** You select a fresh lineup every week. You can drop players and pick them back up later freely.
-            
-            ### 💰 Stakes & Payouts
-            * **Entry Fee:** **$50** per manager.
-            * **Payout Structure:**
-                * If **8+ Managers** join: Top **3 Places** paid.
-                * If **< 8 Managers** join: Top **2 Places** paid.
-            
-            ### 🚀 The Multiplier Strategy
-            Loyalty is rewarded. If you start the same player in consecutive weeks, their points are multiplied.
-            * **Player's 1st Week:** 100% Points (1.0x)
-            * **Player's 2nd Straight Week:** 110% Points (1.1x)
-            * **Player's 3rd Straight Week:** 125% Points (1.25x)
-            * **Player's 4th Straight Week:** 150% Points (1.5x)
-            *(Note: If you bench a player for a week and then bring them back for a later week, the streak resets to 1.0x)*
-
-            ### 📋 Roster Requirements (10 Players)
-            | Pos | Count |
-            | :--- | :--- |
-            | **QB** | 1 |
-            | **RB** | 2 |
-            | **WR** | 2 |
-            | **TE** | 1 |
-            | **FLEX** | 2 (RB/WR/TE) |
-            | **K** | 1 |
-            | **DEF** | 1 (Team Defense) |
-
-            ### 🏈 Scoring Settings
-            | Stat | Points |
-            | :--- | :--- |
-            | **Passing TD** | 6 pts |
-            | **2 PT Conversion** | 2 pts |
-            | **Passing Yards** | 1 pt per 30 yds |
-            | **Interception** | -3 pt |
-            | **Pick 6** | -3 pt |
-            | **QB Sack Taken** | -1 pt |
-            | **Rushing/Rec TD** | 6 pts |
-            | **2 PT Conversion** | 2 pts |
-            | **Rushing/Rec Yards** | 1 pt per 10 yds |
-            | **Reception** | 0.5 pts (Half-PPR) |
-            | **Fumble Lost** | -3 pts |
-            | **Fumble Rec. TD** | 6 pts |
-            | **Safety Taken (Rush/Rec.)** | -2 pts |
-            | **Punt Return (Over 10 yards)** | 1 pt per 10 yds |
-            | **Kick Return (Over 20 yards)** | 1 pt per 10 yds |
-            | **FG Made** | 3 pts |
-            | **FGM Yard Over 30** | 0.1 pts |
-            | **PAT Made** | 1 pt |
-            | **FG Missed** | -3 pts |
-            | **PAT Missed** | -3 pts |
-            | **Defense TD** | 6 pts |
-            | **0 Pts Allowed** | 12 pts |
-            | **1-6 Pts Allowed** | 9 pts |
-            | **7-13 Pts Allowed** | 6 pts |
-            | **14-20 Pts Allowed** | 3 pts |
-            | **21-27 Pts Allowed** | 0 pts |
-            | **28-34 Pts Allowed** | -3 pts |
-            | **35+ Pts Allowed** | -6 pts |
-            | **4th Down Stop** | 1 pt |
-            | **DEF Sack** | 1 pt |
-            | **DEF INT** | 3 pt |
-            | **DEF Fumble Recovery** | 3 pt |
-            | **Safety** | 5 pt |
-            | **Blocked Kick** | 6 pt |
-            | **2-PT Conv. Return** | 2 pt |
-            """)
+            # --- EXTERNAL FILE LOADER ---
+            if os.path.exists("rules.md"):
+                with open("rules.md", "r") as f:
+                    rules_text = f.read()
+                st.markdown(rules_text)
+            else:
+                st.warning("⚠️ 'rules.md' file not found. Please create it in your repository.")
 
 # --- 6. MAIN APP ---
 def main_game_app():
@@ -420,7 +334,6 @@ def main_game_app():
         st.title(f"🏈 {owner_name}'s War Room")
         st.caption(f"Drafting for: **WEEK {CURRENT_WEEK}**")
     with c2: 
-        # LOGOUT BUTTON
         st.write("")
         if st.button("LOG OUT"):
             st.session_state['logged_in'] = False
@@ -571,4 +484,3 @@ def main_game_app():
 # --- 7. ROUTER ---
 if st.session_state['logged_in']: main_game_app()
 else: login_page()
-
