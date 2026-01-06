@@ -70,24 +70,53 @@ def set_bg_from_url(url):
              margin-top: 5px;
          }}
 
-         /* LANDING PAGE LOGIN BOX (The Shadow Box) */
+         /* LANDING PAGE LOGIN BOX (0.8 Opacity) */
          div[data-testid="stTabs"] {{
-             background-color: rgba(0, 0, 0, 0.95) !important;
+             background-color: rgba(0, 0, 0, 0.80) !important; 
              border: 2px solid #8B0000;
              border-radius: 15px;
              padding: 25px;
              box-shadow: 0 0 40px rgba(139, 0, 0, 0.6); 
-             color: white;
+             color: white !important;
          }}
          
-         /* Rule Expander */
+         /* Force Tabs Text Color */
+         button[data-baseweb="tab"] {{
+             color: white !important;
+         }}
+         div[data-baseweb="tab-highlight"] {{
+             background-color: #8B0000 !important;
+         }}
+         
+         /* LANDING PAGE INPUTS */
+         /* Force labels to be white */
+         label {{
+             color: white !important;
+         }}
+         /* Input text black */
+         input {{
+             color: black !important;
+         }}
+
+         /* RULES BOX STYLING */
+         /* This ensures the markdown file looks clean and formatted */
+         .rules-container h1, .rules-container h2, .rules-container h3 {{
+             color: #FBBF24 !important; /* Gold Headers */
+             font-family: 'Cinzel', serif !important;
+             margin-top: 10px;
+         }}
+         .rules-container p, .rules-container li {{
+             color: #E0E0E0 !important; /* White Text */
+             font-size: 16px;
+             line-height: 1.5;
+         }}
+         .rules-container strong {{
+             color: #FFFFFF !important;
+         }}
          div[data-testid="stExpander"] {{
-             background-color: rgba(10, 10, 10, 0.98);
+             background-color: rgba(10, 10, 10, 0.95);
              border: 1px solid #8B0000;
-             color: white;
          }}
-         
-         input {{ color: black; }}
          </style>
          """,
          unsafe_allow_html=True
@@ -102,29 +131,49 @@ def apply_war_room_style():
             background-color: #0F172A !important; 
         }
         h1, h2, h3, h4, h5, h6, p, li, label {
-            color: #E2E8F0 !important;
+            color: #E2E8F0 !important; 
         }
         h1, h2, h3 {
             font-family: 'Cinzel', serif !important;
-            color: #60A5FA !important;
+            color: #60A5FA !important; 
             text-shadow: 1px 1px 2px black;
         }
+        
+        /* SIDEBAR INPUTS: Darker Font for Contrast */
         [data-testid="stSidebar"] input {
-            color: #000000 !important;
-            font-weight: 900 !important;
+            color: #000000 !important; /* PITCH BLACK */
+            font-weight: 900 !important; /* EXTRA BOLD */
+            background-color: #F1F5F9 !important; /* Very light grey background */
         }
-        div[data-testid="stButton"] button {
-            background-color: #991B1B !important;
+        
+        /* LOGOUT BUTTON (Red) */
+        /* We target the Secondary button type */
+        button[kind="secondary"] {
+            background-color: #7F1D1D !important;
             color: white !important;
-            border: 1px solid #F87171 !important;
+            border: 1px solid #EF4444 !important;
         }
+
+        /* SAVE ROSTER BUTTON (Green) */
+        /* We target the Primary button type */
+        button[kind="primary"] {
+            background-color: #15803d !important; /* Strong Green */
+            color: white !important;
+            border: 1px solid #4ade80 !important;
+            font-size: 18px !important;
+        }
+        button[kind="primary"]:hover {
+            background-color: #166534 !important;
+        }
+
+        /* Tables */
         [data-testid="stDataEditor"] {
             border: 1px solid #334155;
             border-radius: 5px;
             background-color: #1E293B; 
         }
         [data-testid="stMetricValue"] {
-            color: #FBBF24 !important;
+            color: #FBBF24 !important; 
         }
         section[data-testid="stSidebar"] {
             background-color: #0B1120 !important;
@@ -225,13 +274,13 @@ def login_page():
     c_left, c_center, c_right = st.columns([1, 2, 1])
     with c_center:
         with st.expander("📜 RULES OF THE ARENA (Read Carefully)", expanded=False):
-            # --- EXTERNAL FILE LOADER ---
             if os.path.exists("rules.md"):
                 with open("rules.md", "r") as f:
                     rules_text = f.read()
-                st.markdown(rules_text)
+                # Wrap in a div to apply the clean CSS styling
+                st.markdown(f'<div class="rules-container">{rules_text}</div>', unsafe_allow_html=True)
             else:
-                st.warning("⚠️ 'rules.md' file not found. Please create it in your repository.")
+                st.warning("rules.md file not found.")
 
 # --- 6. MAIN APP ---
 def main_game_app():
@@ -297,9 +346,11 @@ def main_game_app():
         st.sidebar.markdown("## 🛡️ Current Team")
         st.sidebar.divider()
         
+        # KEY FIX: The key includes the VALUE. This forces Streamlit to redraw 
+        # the widget when the value changes, fixing the persistence bug.
         def render_slot(label, players, index):
             val = players[index] if len(players) > index else "---"
-            st.sidebar.text_input(label, val, disabled=True, key=f"slot_{label}_{index}")
+            st.sidebar.text_input(label, val, disabled=True, key=f"slot_{label}_{index}_{val}")
 
         render_slot("QB", qbs, 0)
         render_slot("RB 1", rbs, 0)
@@ -311,8 +362,8 @@ def main_game_app():
         f1 = flex_pool[0] if len(flex_pool) > 0 else "---"
         f2 = flex_pool[1] if len(flex_pool) > 1 else "---"
         
-        st.sidebar.text_input("FLEX 1", f1, disabled=True)
-        st.sidebar.text_input("FLEX 2", f2, disabled=True)
+        st.sidebar.text_input("FLEX 1", f1, disabled=True, key=f"flex_1_{f1}")
+        st.sidebar.text_input("FLEX 2", f2, disabled=True, key=f"flex_2_{f2}")
         
         render_slot("K", ks, 0)
         render_slot("DEF", defs, 0)
@@ -335,7 +386,7 @@ def main_game_app():
         st.caption(f"Drafting for: **WEEK {CURRENT_WEEK}**")
     with c2: 
         st.write("")
-        if st.button("LOG OUT"):
+        if st.button("LOG OUT", type="secondary"):
             st.session_state['logged_in'] = False
             st.session_state['roster_loaded'] = False
             st.session_state['my_roster'] = []
@@ -458,7 +509,7 @@ def main_game_app():
         with d3:
             valid_roster = (qb==1 and rb>=2 and wr>=2 and te>=1 and flex<=2 and k==1 and def_==1 and len(current_selection)==10)
             if valid_roster:
-                if st.button(f"💾 Submit Week {CURRENT_WEEK}", type="primary", use_container_width=True, key="save_btn"):
+                if st.button(f"✅ SAVE ROSTER", type="primary", use_container_width=True, key="save_btn"):
                     with st.spinner("Saving..."):
                         sheet = get_sheet()
                         if sheet:
