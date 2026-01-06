@@ -1,4 +1,22 @@
-# LANDING PAGE IMAGE LINK:  "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
+This is a precision fix. The issues you described (contrast problems, invisible text) were caused by the "Nuclear CSS" option I used previously, which forced every text element to be white—even when it was sitting on top of a white background (like inside a text box or a button).
+
+I have rewritten the CSS to be surgically precise.
+
+Key Fixes:
+Landing Page: Darkened the Login Box background to near-black (0.95 opacity) and added a heavy Red Glow shadow to make it stand out against the background image.
+
+War Room Sidebar: Forced the text inside the "Current Team" boxes to be Black and Bold, so it pops against the white input box.
+
+Logout Button: Styled specifically to be Red with White Text (high contrast).
+
+Table Headers: Removed the code that was forcing them to be white-on-white. They will now be readable.
+
+Update app.py
+Replace your entire file with this version.
+
+(Remember to paste your GitHub Image URL at the top one last time!)
+
+Python
 
 import streamlit as st
 import pandas as pd
@@ -12,7 +30,7 @@ st.set_page_config(layout="wide", page_title="Champions League")
 CURRENT_WEEK = 1 
 
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
-BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
+BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/YOUR_USERNAME_HERE/fantasy-playoff-app/main/football_intro.png"
 
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
@@ -31,7 +49,7 @@ def get_connection():
     gc = gspread.service_account_from_dict(creds)
     return gc
 
-# --- 2. CSS & STYLING (Soft Dark Blue Theme) ---
+# --- 2. CSS & STYLING ---
 def set_bg_from_url(url):
     st.markdown(
          f"""
@@ -49,7 +67,7 @@ def set_bg_from_url(url):
          
          header {{visibility: hidden;}}
          
-         /* TITLE CLASS */
+         /* LANDING PAGE TITLE */
          .spartan-blood {{
              font-family: 'Nanum Brush Script', cursive;
              font-size: 130px !important;
@@ -69,15 +87,27 @@ def set_bg_from_url(url):
              font-weight: 700;
              margin-top: 5px;
          }}
-         
-         div[data-testid="stExpander"] {{
-             background-color: rgba(15, 23, 42, 0.95); /* Dark Slate Blue */
-             border: 1px solid #334155;
-             color: #e2e8f0;
+
+         /* LANDING PAGE LOGIN BOX (The Shadow Box) */
+         div[data-testid="stTabs"] {{
+             background-color: rgba(0, 0, 0, 0.95) !important; /* Almost black for max contrast */
+             border: 2px solid #8B0000;
+             border-radius: 15px;
+             padding: 25px;
+             /* Heavy Red Shadow for Contrast */
+             box-shadow: 0 0 40px rgba(139, 0, 0, 0.6); 
+             color: white;
          }}
          
+         /* Rule Expander */
+         div[data-testid="stExpander"] {{
+             background-color: rgba(10, 10, 10, 0.98);
+             border: 1px solid #8B0000;
+             color: white;
+         }}
+         
+         /* Input text color for landing page */
          input {{ color: black; }}
-         label {{ color: #e0e0e0; }}
          </style>
          """,
          unsafe_allow_html=True
@@ -87,60 +117,58 @@ def apply_war_room_style():
     st.markdown(
         """
         <style>
-        /* 1. SOFT DARK BLUE BACKGROUND */
+        /* 1. WAR ROOM BACKGROUND */
         .stApp {
             background-image: none !important;
-            background-color: #0F172A !important; /* Slate 900 - Soft Dark Blue */
+            background-color: #0F172A !important; /* Dark Slate Blue */
         }
 
-        /* 2. TEXT COLOR */
-        h1, h2, h3, h4, h5, h6, p, li, div, span {
-            color: #E2E8F0 !important; /* Soft White/Grey */
+        /* 2. GENERAL TEXT COLOR */
+        /* We target headers and paragraphs, but NOT 'div' generically to avoid breaking tables */
+        h1, h2, h3, h4, h5, h6, p, li, label {
+            color: #E2E8F0 !important; /* Soft White */
         }
         
-        /* 3. CUSTOM HEADERS */
         h1, h2, h3 {
             font-family: 'Cinzel', serif !important;
-            color: #60A5FA !important; /* Light Blue for headers to pop against dark blue */
+            color: #60A5FA !important; /* Light Blue Headers */
             text-shadow: 1px 1px 2px black;
         }
 
-        /* 4. FIX INPUTS & SELECTBOXES */
-        .stSelectbox div[data-baseweb="select"] > div {
-            background-color: #1E293B !important; /* Slate 800 */
+        /* 3. SIDEBAR "CURRENT TEAM" INPUTS */
+        /* Force the text INSIDE the sidebar white boxes to be Black and Bold */
+        [data-testid="stSidebar"] input {
+            color: #000000 !important;
+            font-weight: 900 !important;
+        }
+
+        /* 4. LOGOUT BUTTON (High Contrast) */
+        /* Targets the button in the top right */
+        div[data-testid="stButton"] button {
+            background-color: #991B1B !important; /* Dark Red */
             color: white !important;
-            border: 1px solid #334155;
+            border: 1px solid #F87171 !important;
         }
         
-        /* 5. FIX DATA EDITOR / TABLES */
+        /* 5. DATA EDITOR (Tables) */
         [data-testid="stDataEditor"] {
             border: 1px solid #334155;
             border-radius: 5px;
-            background-color: #1E293B; /* Slate 800 */
+            background-color: #1E293B; 
         }
         
-        /* 6. METRICS (The Scores) */
+        /* 6. METRICS */
         [data-testid="stMetricValue"] {
-            color: #FBBF24 !important; /* Amber Gold */
-            font-size: 36px !important;
-        }
-        [data-testid="stMetricLabel"] {
-            color: #94A3B8 !important; /* Slate 400 */
-        }
-
-        /* 7. BUTTONS */
-        button {
-            border-radius: 5px !important;
-            font-weight: bold !important;
+            color: #FBBF24 !important; /* Gold */
         }
         
-        /* 8. SIDEBAR */
+        /* 7. SIDEBAR BACKGROUND */
         section[data-testid="stSidebar"] {
-            background-color: #0B1120 !important; /* Very Dark Blue */
+            background-color: #0B1120 !important;
             border-right: 1px solid #334155;
         }
         
-        /* 9. CHECKBOXES */
+        /* 8. CHECKBOX LABELS */
         label[data-baseweb="checkbox"] {
             color: #E2E8F0 !important;
         }
@@ -356,12 +384,10 @@ def main_game_app():
         st.session_state['roster_loaded'] = True
 
     # --- SIDEBAR: CURRENT TEAM DISPLAY ---
-    # Smart logic to fill slots based on selections
     current_roster_names = st.session_state['my_roster']
     if current_roster_names:
         roster_df = all_players[all_players['name'].isin(current_roster_names)]
         
-        # Categorize
         qbs = roster_df[roster_df['position'] == 'QB']['display_name'].tolist()
         rbs = roster_df[roster_df['position'] == 'RB']['display_name'].tolist()
         wrs = roster_df[roster_df['position'] == 'WR']['display_name'].tolist()
@@ -369,13 +395,11 @@ def main_game_app():
         ks = roster_df[roster_df['position'] == 'K']['display_name'].tolist()
         defs = roster_df[roster_df['position'] == 'DEF']['display_name'].tolist()
         
-        # Determine Flex
-        flex_pool = rbs[2:] + wrs[2:] + tes[1:] # Players not in starting slots
+        flex_pool = rbs[2:] + wrs[2:] + tes[1:] 
         
         st.sidebar.markdown("## 🛡️ Current Team")
         st.sidebar.divider()
         
-        # Function to render a slot
         def render_slot(label, players, index):
             val = players[index] if len(players) > index else "---"
             st.sidebar.text_input(label, val, disabled=True, key=f"slot_{label}_{index}")
@@ -387,7 +411,6 @@ def main_game_app():
         render_slot("WR 2", wrs, 1)
         render_slot("TE", tes, 0)
         
-        # FLEX Logic
         f1 = flex_pool[0] if len(flex_pool) > 0 else "---"
         f2 = flex_pool[1] if len(flex_pool) > 1 else "---"
         
@@ -397,7 +420,6 @@ def main_game_app():
         render_slot("K", ks, 0)
         render_slot("DEF", defs, 0)
         
-        # Validation Count
         count = len(current_roster_names)
         if count == 10: st.sidebar.success(f"{count}/10 Players Selected")
         else: st.sidebar.warning(f"{count}/10 Players Selected")
@@ -415,7 +437,9 @@ def main_game_app():
         st.title(f"🏈 {owner_name}'s War Room")
         st.caption(f"Drafting for: **WEEK {CURRENT_WEEK}**")
     with c2: 
-        if st.button("Log Out"):
+        # LOGOUT BUTTON
+        st.write("")
+        if st.button("LOG OUT"):
             st.session_state['logged_in'] = False
             st.session_state['roster_loaded'] = False
             st.session_state['my_roster'] = []
@@ -459,8 +483,6 @@ def main_game_app():
     def render_position_table(position_name, header_text):
         pos_df = all_players[all_players['position'] == position_name].copy()
         
-        # BUG FIX: Use st.session_state['my_roster'] to set the checkbox state,
-        # but ensure we don't force a 'default' if the user is interacting.
         pos_df['Draft'] = pos_df['name'].isin(st.session_state['my_roster'])
         pos_df['mult'] = pos_df['name'].map(player_multipliers)
         
@@ -483,8 +505,6 @@ def main_game_app():
         
         st.subheader(header_text)
         
-        # THE FIX: We use a key to make the widget distinct.
-        # We process the output immediately below.
         edited_df = st.data_editor(
             pos_df[['Draft', 'ui_name', 'status']], 
             key=f"editor_{position_name}", 
@@ -498,8 +518,6 @@ def main_game_app():
             height=450
         )
         
-        # Return the list of SELECTED raw names from this table
-        # We have to map UI Name back to Raw Name
         selected_ui_names = edited_df[edited_df['Draft'] == True]['ui_name'].tolist()
         return pos_df[pos_df['ui_name'].isin(selected_ui_names)]['name'].tolist()
 
@@ -511,7 +529,6 @@ def main_game_app():
     with c5: sel_k = render_position_table("K", "K (Pick 1)")
     with c6: sel_def = render_position_table("DEF", "DEF (Pick 1)")
 
-    # Combine selections from ALL tables to form the new master list
     current_selection = sel_qb + sel_rb + sel_wr + sel_te + sel_k + sel_def
     
     # UPDATE STATE INSTANTLY
@@ -571,6 +588,3 @@ def main_game_app():
 # --- 7. ROUTER ---
 if st.session_state['logged_in']: main_game_app()
 else: login_page()
-
-
-
