@@ -1,7 +1,6 @@
 # LANDING PAGE IMAGE LINK:  "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
 
-
 import streamlit as st
 import pandas as pd
 import gspread
@@ -14,7 +13,7 @@ st.set_page_config(layout="wide", page_title="Champions League")
 CURRENT_WEEK = 1 
 
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
-BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/YOUR_USERNAME_HERE/fantasy-playoff-app/main/football_intro.png"
+BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
@@ -95,16 +94,36 @@ def set_bg_from_url(url):
              background-color: rgba(15, 15, 15, 0.95) !important;
              border: 1px solid #8B0000 !important;
          }}
+         
+         /* Rule Text */
          div[data-testid="stExpander"] p, 
          div[data-testid="stExpander"] li {{
              color: #E0E0E0 !important;
              font-family: 'Roboto Slab', serif !important;
              font-size: 16px !important;
          }}
+         
+         /* Rule Headers */
          div[data-testid="stExpander"] h3 {{
              color: #FBBF24 !important; /* Gold Headers */
              font-family: 'Cinzel', serif !important;
              margin-top: 15px !important;
+         }}
+         
+         /* TABLE STYLING WITHIN RULES (The Fix) */
+         div[data-testid="stExpander"] table {{
+             color: white !important;
+             border-collapse: collapse !important;
+         }}
+         div[data-testid="stExpander"] th {{
+             color: #FBBF24 !important; /* Gold Table Headers */
+             border-bottom: 1px solid #555 !important;
+             font-weight: bold !important;
+             text-align: left !important;
+         }}
+         div[data-testid="stExpander"] td {{
+             color: #E0E0E0 !important; /* White Table Rows */
+             border-bottom: 1px solid #333 !important;
          }}
          
          /* LOGIN BUTTONS (Red) */
@@ -152,7 +171,6 @@ def apply_war_room_style():
         }
         
         /* 3. RED (Disabled Button = Roster Invalid) */
-        /* This forces the disabled button to look Red instead of Gray */
         button:disabled {
             background-color: #7F1D1D !important; /* Dark Red */
             color: #FECACA !important; /* Light Red Text */
@@ -655,7 +673,7 @@ def war_room_page():
             s6.markdown(f"**DEF**<br>{'✅' if def_==1 else '❌'} {def_}/1", unsafe_allow_html=True)
             if flex > 2: st.error(f"Too many Flex! ({flex}/2)")
         with d3:
-            # RESET BUTTON (Gray/Secondary)
+            # RESET BUTTON (Gray/Secondary) - MOVED HERE
             if st.button("🔄 Reset Roster", use_container_width=True, type="secondary"):
                 st.session_state['my_roster'] = []
                 st.rerun()
