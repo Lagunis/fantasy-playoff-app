@@ -6,6 +6,7 @@ import pandas as pd
 import gspread
 import hashlib
 import os
+from datetime import datetime, timezone
 
 st.set_page_config(layout="wide", page_title="Champions League")
 
@@ -94,35 +95,30 @@ def set_bg_from_url(url):
              background-color: rgba(15, 15, 15, 0.95) !important;
              border: 1px solid #8B0000 !important;
          }}
-         
-         /* Rule Text */
          div[data-testid="stExpander"] p, 
          div[data-testid="stExpander"] li {{
              color: #E0E0E0 !important;
              font-family: 'Roboto Slab', serif !important;
              font-size: 16px !important;
          }}
-         
-         /* Rule Headers */
          div[data-testid="stExpander"] h3 {{
              color: #FBBF24 !important; /* Gold Headers */
              font-family: 'Cinzel', serif !important;
              margin-top: 15px !important;
          }}
          
-         /* TABLE STYLING WITHIN RULES (The Fix) */
+         /* TABLE STYLING WITHIN RULES */
          div[data-testid="stExpander"] table {{
              color: white !important;
              border-collapse: collapse !important;
          }}
          div[data-testid="stExpander"] th {{
-             color: #FBBF24 !important; /* Gold Table Headers */
+             color: #FBBF24 !important;
              border-bottom: 1px solid #555 !important;
-             font-weight: bold !important;
              text-align: left !important;
          }}
          div[data-testid="stExpander"] td {{
-             color: #E0E0E0 !important; /* White Table Rows */
+             color: #E0E0E0 !important;
              border-bottom: 1px solid #333 !important;
          }}
          
@@ -170,12 +166,24 @@ def apply_war_room_style():
             border: 1px solid #475569 !important;
         }
         
-        /* 3. RED (Disabled Button = Roster Invalid) */
+        /* 3. GREEN (Save Roster Button) */
+        /* We target the specific help title to isolate the Save button */
+        button[title="save_roster_btn"] {
+            background-color: #15803d !important; /* Strong Green */
+            color: white !important;
+            border: 1px solid #4ade80 !important;
+            font-size: 18px !important;
+        }
+        button[title="save_roster_btn"]:hover {
+            background-color: #166534 !important;
+        }
+        
+        /* 4. RED (Disabled Button = Roster Invalid) */
         button:disabled {
             background-color: #7F1D1D !important; /* Dark Red */
             color: #FECACA !important; /* Light Red Text */
             border: 1px solid #B91C1C !important;
-            opacity: 1.0 !important; /* Remove transparency */
+            opacity: 1.0 !important;
             cursor: not-allowed;
         }
 
@@ -242,7 +250,6 @@ def render_navbar():
     c1, c2, c3, c4 = st.columns([1, 1, 4, 1])
     
     with c1:
-        # Active = Primary (Purple), Inactive = Secondary (Gray)
         if st.button("⚔️ WAR ROOM", use_container_width=True, type="primary" if st.session_state['current_page'] == "War Room" else "secondary"):
             st.session_state['current_page'] = "War Room"
             st.rerun()
@@ -253,7 +260,6 @@ def render_navbar():
             st.rerun()
             
     with c4:
-        # Keep Logout Gray
         if st.button("LOG OUT", use_container_width=True, type="secondary"):
             st.session_state['logged_in'] = False
             st.session_state['roster_loaded'] = False
@@ -392,6 +398,7 @@ def leaderboard_page():
         gc = get_connection()
         sh = gc.open("fantasy_league_db")
         users_df = pd.DataFrame(sh.worksheet("users").get_all_records())
+        # The main roster/points log is in 'sheet1'
         scores_df = pd.DataFrame(sh.sheet1.get_all_records())
     except:
         st.error("Database Connection Failed")
@@ -404,28 +411,36 @@ def leaderboard_page():
     leaderboard = users_df[['manager_name']].copy()
     leaderboard.columns = ['Manager']
     
+    # Initialize Display Columns
     leaderboard['Week 1'] = 0.0
     leaderboard['Week 2'] = 0.0
     leaderboard['Week 3'] = 0.0
     leaderboard['Week 4'] = 0.0
     leaderboard['Total'] = 0.0
     
+    # Calculate Scores from Log (Finding Latest Entry per Week)
     if not scores_df.empty:
+        # Standardize columns for the log
+        # Expected Log Cols: Timestamp, Manager, Week, Roster, Points
         for idx, row in leaderboard.iterrows():
             mgr = row['Manager']
-            if mgr in scores_df['Manager'].values:
-                score_row = scores_df[scores_df['Manager'] == mgr].iloc[0]
-                w1 = float(score_row.get('Points_1', 0) or 0)
-                w2 = float(score_row.get('Points_2', 0) or 0)
-                w3 = float(score_row.get('Points_3', 0) or 0)
-                w4 = float(score_row.get('Points_4', 0) or 0)
-                
-                leaderboard.at[idx, 'Week 1'] = w1
-                leaderboard.at[idx, 'Week 2'] = w2
-                leaderboard.at[idx, 'Week 3'] = w3
-                leaderboard.at[idx, 'Week 4'] = w4
-                leaderboard.at[idx, 'Total'] = w1 + w2 + w3 + w4
+            # Filter for this manager
+            mgr_entries = scores_df[scores_df['Manager'] == mgr]
+            
+            if not mgr_entries.empty:
+                # Calculate for each week
+                for w in [1, 2, 3, 4]:
+                    # Find entries for this week
+                    week_entries = mgr_entries[mgr_entries['Week'] == w]
+                    if not week_entries.empty:
+                        # Get the last entry (latest submission)
+                        latest = week_entries.iloc[-1]
+                        # Points column might be named 'Points' in new format
+                        # or we fallback to 0 if not scored yet
+                        pts = float(latest.get('Points', 0) or 0)
+                        leaderboard.at[idx, f'Week {w}'] = pts
 
+    leaderboard['Total'] = leaderboard['Week 1'] + leaderboard['Week 2'] + leaderboard['Week 3'] + leaderboard['Week 4']
     leaderboard = leaderboard.sort_values(by='Total', ascending=False).reset_index(drop=True)
     leaderboard.index += 1 
     
@@ -461,17 +476,23 @@ def war_room_page():
         st.error("No players.csv found")
         st.stop()
 
+    # --- AUTO-LOAD LOGIC (UPDATED FOR APPEND LOG) ---
     if not st.session_state['roster_loaded']:
         try:
             sheet = get_sheet()
             records = sheet.get_all_records()
             df_cloud = pd.DataFrame(records)
-            target_col = f"Roster_{CURRENT_WEEK}"
             
-            if not df_cloud.empty and owner_name in df_cloud['Manager'].values:
-                user_row = df_cloud[df_cloud['Manager'] == owner_name].iloc[0]
-                if target_col in user_row and user_row[target_col]:
-                    saved_str = user_row[target_col]
+            # Find latest roster for this user and current week
+            if not df_cloud.empty:
+                # Filter
+                mask = (df_cloud['Manager'] == owner_name) & (df_cloud['Week'] == CURRENT_WEEK)
+                user_week_data = df_cloud[mask]
+                
+                if not user_week_data.empty:
+                    # Take the last row (latest append)
+                    latest_entry = user_week_data.iloc[-1]
+                    saved_str = latest_entry['Roster']
                     saved_raw_names = saved_str.split(", ")
                     restored_roster = all_players[all_players['name'].isin(saved_raw_names)]['name'].tolist()
                     st.session_state['my_roster'] = restored_roster
@@ -482,7 +503,8 @@ def war_room_page():
             else:
                 st.session_state['my_roster'] = []
         except Exception as e:
-            st.error(f"Auto-load failed: {e}")
+            # If columns don't exist yet (first run), just fail gracefully
+            st.session_state['my_roster'] = []
         
         st.session_state['roster_loaded'] = True
 
@@ -567,13 +589,20 @@ def war_room_page():
             sheet = get_sheet()
             records = sheet.get_all_records()
             df = pd.DataFrame(records)
-            if df.empty or manager not in df['Manager'].values: return multipliers
-            user_row = df[df['Manager'] == manager].iloc[0]
+            if df.empty: return multipliers
+            
+            # Find history for this manager
+            # We need to reconstruct history from the logs
+            # Filter to manager
+            mgr_df = df[df['Manager'] == manager]
             
             def was_in_week(p_name, w):
-                col = f"Roster_{w}"
-                if col in user_row and user_row[col]: return p_name in user_row[col].split(", ")
-                return False
+                # Get records for week w
+                w_df = mgr_df[mgr_df['Week'] == w]
+                if w_df.empty: return False
+                # Get latest
+                latest = w_df.iloc[-1]
+                return p_name in latest['Roster'].split(", ")
             
             for name in all_players['name']:
                 streak = 0
@@ -673,7 +702,7 @@ def war_room_page():
             s6.markdown(f"**DEF**<br>{'✅' if def_==1 else '❌'} {def_}/1", unsafe_allow_html=True)
             if flex > 2: st.error(f"Too many Flex! ({flex}/2)")
         with d3:
-            # RESET BUTTON (Gray/Secondary) - MOVED HERE
+            # RESET BUTTON (Gray)
             if st.button("🔄 Reset Roster", use_container_width=True, type="secondary"):
                 st.session_state['my_roster'] = []
                 st.rerun()
@@ -681,37 +710,22 @@ def war_room_page():
             # VALIDITY CHECK BUTTONS
             valid_roster = (qb==1 and rb>=2 and wr>=2 and te>=1 and flex<=2 and k==1 and def_==1 and len(current_selection)==10)
             if valid_roster:
-                # INLINE STYLE HACK FOR GREEN BUTTON since CSS primary override affects Nav
-                st.markdown("""
-                <style>
-                div[data-testid="stContainer"] button[kind="primary"] {
-                    background-color: #15803d !important;
-                    border-color: #22c55e !important;
-                }
-                </style>
-                """, unsafe_allow_html=True)
-                
-                if st.button(f"✅ SAVE ROSTER", type="primary", use_container_width=True, key="save_btn"):
+                # SAVE BUTTON (Green via 'help' ID Hack)
+                if st.button(f"✅ SAVE ROSTER", type="primary", use_container_width=True, key="save_btn", help="save_roster_btn"):
                     with st.spinner("Saving..."):
                         sheet = get_sheet()
                         if sheet:
                             raw_names = my_team_data['name'].tolist()
                             roster_str = ", ".join(raw_names)
-                            records = sheet.get_all_records()
-                            df_cloud = pd.DataFrame(records)
                             
-                            if df_cloud.empty or owner_name not in df_cloud['Manager'].values:
-                                new_row = {"Manager": owner_name}
-                                df_cloud = pd.concat([df_cloud, pd.DataFrame([new_row])], ignore_index=True)
+                            # Prepare Data for Append
+                            # Timestamp | Manager | Week | Roster | Points
+                            ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                            new_row = [ts, owner_name, CURRENT_WEEK, roster_str, 0]
                             
-                            idx = df_cloud.index[df_cloud['Manager'] == owner_name].tolist()[0]
-                            
-                            df_cloud.at[idx, f'Roster_{CURRENT_WEEK}'] = roster_str
-                            df_cloud.at[idx, f'Points_{CURRENT_WEEK}'] = 0 
-                            
-                            sheet.clear()
-                            sheet.update([df_cloud.columns.values.tolist()] + df_cloud.values.tolist())
-                            st.success(f"Week {CURRENT_WEEK} Saved!")
+                            # Append to Sheet1
+                            sheet.append_row(new_row)
+                            st.success(f"Week {CURRENT_WEEK} Saved at {ts} (UTC)")
             else: 
                 # CSS handles the RED coloring for disabled buttons
                 st.button("Roster Invalid", disabled=True, use_container_width=True)
@@ -724,4 +738,5 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
+
 
