@@ -166,8 +166,7 @@ def apply_war_room_style():
             border: 1px solid #475569 !important;
         }
         
-        /* 3. GREEN (Save Roster Button) */
-        /* We target the specific help title to isolate the Save button */
+        /* 3. GREEN (Save Roster Button) - Specific Override */
         button[title="save_roster_btn"] {
             background-color: #15803d !important; /* Strong Green */
             color: white !important;
@@ -233,14 +232,16 @@ def verify_login(email, password):
         if email in df['email'].values:
             user_row = df[df['email'] == email].iloc[0]
             if check_hashes(password, user_row['password']):
-                return True, user_row['manager_name']
+                # Return True, Manager Name, AND Email
+                return True, user_row['manager_name'], user_row['email']
     except Exception as e:
-        return False, f"Login Error: {e}"
-    return False, "Incorrect email or password."
+        return False, f"Login Error: {e}", ""
+    return False, "Incorrect email or password.", ""
 
 # --- 4. SESSION STATE ---
 if 'logged_in' not in st.session_state: st.session_state['logged_in'] = False
 if 'manager_name' not in st.session_state: st.session_state['manager_name'] = ""
+if 'user_email' not in st.session_state: st.session_state['user_email'] = "" # NEW: Track Email
 if 'my_roster' not in st.session_state: st.session_state['my_roster'] = []
 if 'roster_loaded' not in st.session_state: st.session_state['roster_loaded'] = False
 if 'current_page' not in st.session_state: st.session_state['current_page'] = "War Room" 
@@ -264,6 +265,7 @@ def render_navbar():
             st.session_state['logged_in'] = False
             st.session_state['roster_loaded'] = False
             st.session_state['my_roster'] = []
+            st.session_state['user_email'] = ""
             st.session_state['current_page'] = "War Room"
             st.rerun()
     
@@ -295,10 +297,11 @@ def login_page():
             email = st.text_input("Email", key="login_email")
             password = st.text_input("Password", type='password', key="login_pass")
             if st.button("LOG IN", use_container_width=True, type="primary"):
-                is_valid, name = verify_login(email, password)
+                is_valid, name, user_mail = verify_login(email, password)
                 if is_valid:
                     st.session_state['logged_in'] = True
                     st.session_state['manager_name'] = name
+                    st.session_state['user_email'] = user_mail
                     st.session_state['roster_loaded'] = False 
                     st.rerun()
                 else:
@@ -315,6 +318,7 @@ def login_page():
                         st.success(msg)
                         st.session_state['logged_in'] = True
                         st.session_state['manager_name'] = new_user_name
+                        st.session_state['user_email'] = new_email
                         st.session_state['roster_loaded'] = False
                         st.rerun()
                     else: st.error(msg)
@@ -342,9 +346,9 @@ def login_page():
              ### 🚀 The Multiplier Strategy
             Loyalty is rewarded. If you start the same player in consecutive weeks, their points are multiplied.
             * **Player's 1st Week:** 100% Points (1.0x)
-            * **Player's 2nd Straight Week:** 110% Points (1.1x)
-            * **Player's 3rd Straight Week:** 125% Points (1.25x)
-            * **Player's 4th Straight Week:** 150% Points (1.5x)
+            * **Player's 2nd Straight Week:** 125% Points (1.25x)
+            * **Player's 3rd Straight Week:** 150% Points (1.5x)
+            * **Player's 4th Straight Week:** 200% Points (2.0x)
             *(Note: If you bench a player for a week and then bring them back for a later week, the streak resets to 1.0x)*
 
              ### 📋 Roster (10 Players)
@@ -398,7 +402,7 @@ def leaderboard_page():
         gc = get_connection()
         sh = gc.open("fantasy_league_db")
         users_df = pd.DataFrame(sh.worksheet("users").get_all_records())
-        # The main roster/points log is in 'sheet1'
+        # The main log is in 'sheet1'
         scores_df = pd.DataFrame(sh.sheet1.get_all_records())
     except:
         st.error("Database Connection Failed")
@@ -410,39 +414,7 @@ def leaderboard_page():
 
     leaderboard = users_df[['manager_name']].copy()
     leaderboard.columns = ['Manager']
-    
-    # Initialize Display Columns
-    leaderboard['Week 1'] = 0.0
-    leaderboard['Week 2'] = 0.0
-    leaderboard['Week 3'] = 0.0
-    leaderboard['Week 4'] = 0.0
-    leaderboard['Total'] = 0.0
-    
-    # Calculate Scores from Log (Finding Latest Entry per Week)
-    if not scores_df.empty:
-        # Standardize columns for the log
-        # Expected Log Cols: Timestamp, Manager, Week, Roster, Points
-        for idx, row in leaderboard.iterrows():
-            mgr = row['Manager']
-            # Filter for this manager
-            mgr_entries = scores_df[scores_df['Manager'] == mgr]
-            
-            if not mgr_entries.empty:
-                # Calculate for each week
-                for w in [1, 2, 3, 4]:
-                    # Find entries for this week
-                    week_entries = mgr_entries[mgr_entries['Week'] == w]
-                    if not week_entries.empty:
-                        # Get the last entry (latest submission)
-                        latest = week_entries.iloc[-1]
-                        # Points column might be named 'Points' in new format
-                        # or we fallback to 0 if not scored yet
-                        pts = float(latest.get('Points', 0) or 0)
-                        leaderboard.at[idx, f'Week {w}'] = pts
-
-    leaderboard['Total'] = leaderboard['Week 1'] + leaderboard['Week 2'] + leaderboard['Week 3'] + leaderboard['Week 4']
-    leaderboard = leaderboard.sort_values(by='Total', ascending=False).reset_index(drop=True)
-    leaderboard.index += 1 
+    leaderboard['Total'] = 0.0 # Placeholder since we aren't calculating points yet
     
     st.dataframe(
         leaderboard, 
@@ -460,6 +432,7 @@ def war_room_page():
     render_navbar()
     
     owner_name = st.session_state['manager_name']
+    owner_email = st.session_state['user_email']
 
     def get_sheet():
         gc = get_connection()
@@ -476,25 +449,28 @@ def war_room_page():
         st.error("No players.csv found")
         st.stop()
 
-    # --- AUTO-LOAD LOGIC (UPDATED FOR APPEND LOG) ---
+    # --- AUTO-LOAD LOGIC ---
     if not st.session_state['roster_loaded']:
         try:
             sheet = get_sheet()
             records = sheet.get_all_records()
             df_cloud = pd.DataFrame(records)
             
-            # Find latest roster for this user and current week
-            if not df_cloud.empty:
-                # Filter
+            if not df_cloud.empty and 'Manager' in df_cloud.columns and 'Week' in df_cloud.columns:
+                # Filter for this manager and week
                 mask = (df_cloud['Manager'] == owner_name) & (df_cloud['Week'] == CURRENT_WEEK)
                 user_week_data = df_cloud[mask]
                 
                 if not user_week_data.empty:
-                    # Take the last row (latest append)
                     latest_entry = user_week_data.iloc[-1]
-                    saved_str = latest_entry['Roster']
-                    saved_raw_names = saved_str.split(", ")
-                    restored_roster = all_players[all_players['name'].isin(saved_raw_names)]['name'].tolist()
+                    # RECONSTRUCT LIST FROM COLUMNS
+                    # Cols: QB, RB1, RB2, WR1, WR2, TE, FLX1, FLX2, K, DEF
+                    cols_to_read = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'TE', 'FLX1', 'FLX2', 'K', 'DEF']
+                    restored_roster = []
+                    for c in cols_to_read:
+                        if c in latest_entry and latest_entry[c]:
+                            restored_roster.append(latest_entry[c])
+                    
                     st.session_state['my_roster'] = restored_roster
                     st.toast(f"Week {CURRENT_WEEK} Roster Auto-Loaded", icon="📂")
                 else:
@@ -503,7 +479,6 @@ def war_room_page():
             else:
                 st.session_state['my_roster'] = []
         except Exception as e:
-            # If columns don't exist yet (first run), just fail gracefully
             st.session_state['my_roster'] = []
         
         st.session_state['roster_loaded'] = True
@@ -514,57 +489,57 @@ def war_room_page():
     st.sidebar.markdown("## 🛡️ Current Team")
     st.sidebar.divider()
 
+    # We need to sort the flat list into slots for display & saving
+    roster_slots = {} 
+    
     if current_roster_names:
         roster_df = all_players[all_players['name'].isin(current_roster_names)]
         
-        qbs = roster_df[roster_df['position'] == 'QB']['display_name'].tolist()
-        rbs = roster_df[roster_df['position'] == 'RB']['display_name'].tolist()
-        wrs = roster_df[roster_df['position'] == 'WR']['display_name'].tolist()
-        tes = roster_df[roster_df['position'] == 'TE']['display_name'].tolist()
-        ks = roster_df[roster_df['position'] == 'K']['display_name'].tolist()
-        defs = roster_df[roster_df['position'] == 'DEF']['display_name'].tolist()
+        qbs = roster_df[roster_df['position'] == 'QB']['name'].tolist()
+        rbs = roster_df[roster_df['position'] == 'RB']['name'].tolist()
+        wrs = roster_df[roster_df['position'] == 'WR']['name'].tolist()
+        tes = roster_df[roster_df['position'] == 'TE']['name'].tolist()
+        ks = roster_df[roster_df['position'] == 'K']['name'].tolist()
+        defs = roster_df[roster_df['position'] == 'DEF']['name'].tolist()
         
-        flex_pool = rbs[2:] + wrs[2:] + tes[1:] 
+        # Flex logic
+        # Take extra RBs/WRs/TEs
+        flex_pool = rbs[2:] + wrs[2:] + tes[1:]
         
+        # Assign Slots map
+        roster_slots['QB'] = qbs[0] if len(qbs) > 0 else ""
+        roster_slots['RB1'] = rbs[0] if len(rbs) > 0 else ""
+        roster_slots['RB2'] = rbs[1] if len(rbs) > 1 else ""
+        roster_slots['WR1'] = wrs[0] if len(wrs) > 0 else ""
+        roster_slots['WR2'] = wrs[1] if len(wrs) > 1 else ""
+        roster_slots['TE'] = tes[0] if len(tes) > 0 else ""
+        roster_slots['FLX1'] = flex_pool[0] if len(flex_pool) > 0 else ""
+        roster_slots['FLX2'] = flex_pool[1] if len(flex_pool) > 1 else ""
+        roster_slots['K'] = ks[0] if len(ks) > 0 else ""
+        roster_slots['DEF'] = defs[0] if len(defs) > 0 else ""
+
         # VISIBILITY FIX: Custom HTML for Sidebar
-        def render_slot(label, players, index):
-            val = players[index] if len(players) > index else "---"
+        def render_slot_sidebar(label, val):
+            display_val = val if val else "---"
             st.sidebar.markdown(f"""
             <div style="margin-bottom: 5px;">
                 <span style="color: #94A3B8; font-size: 12px; font-weight: bold;">{label}</span>
                 <div style="background-color: #F1F5F9; color: #111827; padding: 8px; border-radius: 4px; font-weight: 800; font-size: 14px; border: 1px solid #CBD5E1;">
-                    {val}
+                    {display_val}
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
-        render_slot("QB", qbs, 0)
-        render_slot("RB 1", rbs, 0)
-        render_slot("RB 2", rbs, 1)
-        render_slot("WR 1", wrs, 0)
-        render_slot("WR 2", wrs, 1)
-        render_slot("TE", tes, 0)
-        
-        f1 = flex_pool[0] if len(flex_pool) > 0 else "---"
-        f2 = flex_pool[1] if len(flex_pool) > 1 else "---"
-        
-        st.sidebar.markdown(f"""
-        <div style="margin-bottom: 5px;">
-            <span style="color: #94A3B8; font-size: 12px; font-weight: bold;">FLEX 1</span>
-            <div style="background-color: #F1F5F9; color: #111827; padding: 8px; border-radius: 4px; font-weight: 800; font-size: 14px; border: 1px solid #CBD5E1;">
-                {f1}
-            </div>
-        </div>
-        <div style="margin-bottom: 5px;">
-            <span style="color: #94A3B8; font-size: 12px; font-weight: bold;">FLEX 2</span>
-            <div style="background-color: #F1F5F9; color: #111827; padding: 8px; border-radius: 4px; font-weight: 800; font-size: 14px; border: 1px solid #CBD5E1;">
-                {f2}
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        render_slot("K", ks, 0)
-        render_slot("DEF", defs, 0)
+        render_slot_sidebar("QB", roster_slots['QB'])
+        render_slot_sidebar("RB 1", roster_slots['RB1'])
+        render_slot_sidebar("RB 2", roster_slots['RB2'])
+        render_slot_sidebar("WR 1", roster_slots['WR1'])
+        render_slot_sidebar("WR 2", roster_slots['WR2'])
+        render_slot_sidebar("TE", roster_slots['TE'])
+        render_slot_sidebar("FLEX 1", roster_slots['FLX1'])
+        render_slot_sidebar("FLEX 2", roster_slots['FLX2'])
+        render_slot_sidebar("K", roster_slots['K'])
+        render_slot_sidebar("DEF", roster_slots['DEF'])
         
         count = len(current_roster_names)
         if count == 10: st.sidebar.success(f"{count}/10 Players Selected")
@@ -591,18 +566,16 @@ def war_room_page():
             df = pd.DataFrame(records)
             if df.empty: return multipliers
             
-            # Find history for this manager
-            # We need to reconstruct history from the logs
-            # Filter to manager
             mgr_df = df[df['Manager'] == manager]
             
             def was_in_week(p_name, w):
-                # Get records for week w
                 w_df = mgr_df[mgr_df['Week'] == w]
                 if w_df.empty: return False
-                # Get latest
                 latest = w_df.iloc[-1]
-                return p_name in latest['Roster'].split(", ")
+                # Check all columns
+                cols = ['QB','RB1','RB2','WR1','WR2','TE','FLX1','FLX2','K','DEF']
+                roster_list = [latest[c] for c in cols if c in latest and latest[c]]
+                return p_name in roster_list
             
             for name in all_players['name']:
                 streak = 0
@@ -673,7 +646,6 @@ def war_room_page():
 
     current_selection = sel_qb + sel_rb + sel_wr + sel_te + sel_k + sel_def
     
-    # UPDATE STATE INSTANTLY
     if current_selection != st.session_state['my_roster']:
         st.session_state['my_roster'] = current_selection
         st.rerun()
@@ -702,7 +674,7 @@ def war_room_page():
             s6.markdown(f"**DEF**<br>{'✅' if def_==1 else '❌'} {def_}/1", unsafe_allow_html=True)
             if flex > 2: st.error(f"Too many Flex! ({flex}/2)")
         with d3:
-            # RESET BUTTON (Gray)
+            # RESET BUTTON (Gray/Secondary)
             if st.button("🔄 Reset Roster", use_container_width=True, type="secondary"):
                 st.session_state['my_roster'] = []
                 st.rerun()
@@ -710,24 +682,55 @@ def war_room_page():
             # VALIDITY CHECK BUTTONS
             valid_roster = (qb==1 and rb>=2 and wr>=2 and te>=1 and flex<=2 and k==1 and def_==1 and len(current_selection)==10)
             if valid_roster:
-                # SAVE BUTTON (Green via 'help' ID Hack)
+                # SAVE BUTTON (Green via help ID)
                 if st.button(f"✅ SAVE ROSTER", type="primary", use_container_width=True, key="save_btn", help="save_roster_btn"):
                     with st.spinner("Saving..."):
                         sheet = get_sheet()
                         if sheet:
-                            raw_names = my_team_data['name'].tolist()
-                            roster_str = ", ".join(raw_names)
-                            
-                            # Prepare Data for Append
-                            # Timestamp | Manager | Week | Roster | Points
+                            # 1. Prepare Timestamp
                             ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-                            new_row = [ts, owner_name, CURRENT_WEEK, roster_str, 0]
+                            
+                            # 2. Re-Confirm Slots (Using the logic from sidebar to ensure accuracy)
+                            # (We already have 'roster_slots' calculated above in sidebar logic)
+                            
+                            # 3. Calculate Multipliers for each slot
+                            # Helper to safely get multiplier
+                            def get_mult(p_name):
+                                return player_multipliers.get(p_name, 1.0) if p_name else 1.0
+
+                            row_data = [
+                                owner_email,
+                                owner_name,
+                                ts,
+                                CURRENT_WEEK,
+                                roster_slots.get('QB', ''),
+                                roster_slots.get('RB1', ''),
+                                roster_slots.get('RB2', ''),
+                                roster_slots.get('WR1', ''),
+                                roster_slots.get('WR2', ''),
+                                roster_slots.get('TE', ''),
+                                roster_slots.get('FLX1', ''),
+                                roster_slots.get('FLX2', ''),
+                                roster_slots.get('K', ''),
+                                roster_slots.get('DEF', ''),
+                                # Multipliers
+                                get_mult(roster_slots.get('QB')),
+                                get_mult(roster_slots.get('RB1')),
+                                get_mult(roster_slots.get('RB2')),
+                                get_mult(roster_slots.get('WR1')),
+                                get_mult(roster_slots.get('WR2')),
+                                get_mult(roster_slots.get('TE')),
+                                get_mult(roster_slots.get('FLX1')),
+                                get_mult(roster_slots.get('FLX2')),
+                                get_mult(roster_slots.get('K')),
+                                get_mult(roster_slots.get('DEF'))
+                            ]
                             
                             # Append to Sheet1
-                            sheet.append_row(new_row)
+                            sheet.append_row(row_data)
                             st.success(f"Week {CURRENT_WEEK} Saved at {ts} (UTC)")
             else: 
-                # CSS handles the RED coloring for disabled buttons
+                # CSS handles the RED coloring
                 st.button("Roster Invalid", disabled=True, use_container_width=True)
 
 # --- 9. ROUTER ---
@@ -738,5 +741,6 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
+
 
 
