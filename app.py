@@ -335,9 +335,11 @@ def login_page():
             * **Objective:** The Manager with the **Highest Cumulative Total Points** at the end of the Super Bowl wins.
             * **Player Pool:** Players are **NOT unique**. Multiple managers can own the same player (e.g., everyone can start Josh Allen).
             * **Weekly Drafting:** You select a fresh lineup every week. You can drop players and pick them back up later freely.
+            * **As just a quick and dirty DIY site, we will not have some features such as automated roster locking or live scoring.
+            * **Managers can update their rosters up until the start of each individual player's game.
             
              ### 💰 Stakes & Payouts
-            * **Entry Fee:** **$50** per manager.
+            * **Entry Fee:** **$40** per manager.
             * **Payout Structure:**
                 * If **8+ Managers** join: Top **3 Places** paid.
                 * If **< 8 Managers** join: Top **2 Places** paid.
@@ -721,6 +723,7 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
+
 
 
 
