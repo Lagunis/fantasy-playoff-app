@@ -14,7 +14,7 @@ st.set_page_config(layout="wide", page_title="Champions League")
 CURRENT_WEEK = 1 
 
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
-BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
+BACKGROUND_IMAGE_URL =  "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
@@ -232,7 +232,6 @@ def verify_login(email, password):
         if email in df['email'].values:
             user_row = df[df['email'] == email].iloc[0]
             if check_hashes(password, user_row['password']):
-                # Return True, Manager Name, AND Email
                 return True, user_row['manager_name'], user_row['email']
     except Exception as e:
         return False, f"Login Error: {e}", ""
@@ -241,7 +240,7 @@ def verify_login(email, password):
 # --- 4. SESSION STATE ---
 if 'logged_in' not in st.session_state: st.session_state['logged_in'] = False
 if 'manager_name' not in st.session_state: st.session_state['manager_name'] = ""
-if 'user_email' not in st.session_state: st.session_state['user_email'] = "" # NEW: Track Email
+if 'user_email' not in st.session_state: st.session_state['user_email'] = "" 
 if 'my_roster' not in st.session_state: st.session_state['my_roster'] = []
 if 'roster_loaded' not in st.session_state: st.session_state['roster_loaded'] = False
 if 'current_page' not in st.session_state: st.session_state['current_page'] = "War Room" 
@@ -402,8 +401,8 @@ def leaderboard_page():
         gc = get_connection()
         sh = gc.open("fantasy_league_db")
         users_df = pd.DataFrame(sh.worksheet("users").get_all_records())
-        # The main log is in 'sheet1'
-        scores_df = pd.DataFrame(sh.sheet1.get_all_records())
+        # TARGET "rosters" TAB
+        scores_df = pd.DataFrame(sh.worksheet("rosters").get_all_records())
     except:
         st.error("Database Connection Failed")
         return
@@ -414,7 +413,7 @@ def leaderboard_page():
 
     leaderboard = users_df[['manager_name']].copy()
     leaderboard.columns = ['Manager']
-    leaderboard['Total'] = 0.0 # Placeholder since we aren't calculating points yet
+    leaderboard['Total'] = 0.0 
     
     st.dataframe(
         leaderboard, 
@@ -436,7 +435,8 @@ def war_room_page():
 
     def get_sheet():
         gc = get_connection()
-        return gc.open("fantasy_league_db").sheet1
+        # TARGET "rosters" TAB
+        return gc.open("fantasy_league_db").worksheet("rosters")
 
     @st.cache_data
     def load_players():
@@ -457,14 +457,12 @@ def war_room_page():
             df_cloud = pd.DataFrame(records)
             
             if not df_cloud.empty and 'Manager' in df_cloud.columns and 'Week' in df_cloud.columns:
-                # Filter for this manager and week
                 mask = (df_cloud['Manager'] == owner_name) & (df_cloud['Week'] == CURRENT_WEEK)
                 user_week_data = df_cloud[mask]
                 
                 if not user_week_data.empty:
                     latest_entry = user_week_data.iloc[-1]
                     # RECONSTRUCT LIST FROM COLUMNS
-                    # Cols: QB, RB1, RB2, WR1, WR2, TE, FLX1, FLX2, K, DEF
                     cols_to_read = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'TE', 'FLX1', 'FLX2', 'K', 'DEF']
                     restored_roster = []
                     for c in cols_to_read:
@@ -489,7 +487,6 @@ def war_room_page():
     st.sidebar.markdown("## 🛡️ Current Team")
     st.sidebar.divider()
 
-    # We need to sort the flat list into slots for display & saving
     roster_slots = {} 
     
     if current_roster_names:
@@ -502,11 +499,8 @@ def war_room_page():
         ks = roster_df[roster_df['position'] == 'K']['name'].tolist()
         defs = roster_df[roster_df['position'] == 'DEF']['name'].tolist()
         
-        # Flex logic
-        # Take extra RBs/WRs/TEs
         flex_pool = rbs[2:] + wrs[2:] + tes[1:]
         
-        # Assign Slots map
         roster_slots['QB'] = qbs[0] if len(qbs) > 0 else ""
         roster_slots['RB1'] = rbs[0] if len(rbs) > 0 else ""
         roster_slots['RB2'] = rbs[1] if len(rbs) > 1 else ""
@@ -518,7 +512,6 @@ def war_room_page():
         roster_slots['K'] = ks[0] if len(ks) > 0 else ""
         roster_slots['DEF'] = defs[0] if len(defs) > 0 else ""
 
-        # VISIBILITY FIX: Custom HTML for Sidebar
         def render_slot_sidebar(label, val):
             display_val = val if val else "---"
             st.sidebar.markdown(f"""
@@ -572,7 +565,6 @@ def war_room_page():
                 w_df = mgr_df[mgr_df['Week'] == w]
                 if w_df.empty: return False
                 latest = w_df.iloc[-1]
-                # Check all columns
                 cols = ['QB','RB1','RB2','WR1','WR2','TE','FLX1','FLX2','K','DEF']
                 roster_list = [latest[c] for c in cols if c in latest and latest[c]]
                 return p_name in roster_list
@@ -674,27 +666,18 @@ def war_room_page():
             s6.markdown(f"**DEF**<br>{'✅' if def_==1 else '❌'} {def_}/1", unsafe_allow_html=True)
             if flex > 2: st.error(f"Too many Flex! ({flex}/2)")
         with d3:
-            # RESET BUTTON (Gray/Secondary)
             if st.button("🔄 Reset Roster", use_container_width=True, type="secondary"):
                 st.session_state['my_roster'] = []
                 st.rerun()
 
-            # VALIDITY CHECK BUTTONS
             valid_roster = (qb==1 and rb>=2 and wr>=2 and te>=1 and flex<=2 and k==1 and def_==1 and len(current_selection)==10)
             if valid_roster:
-                # SAVE BUTTON (Green via help ID)
                 if st.button(f"✅ SAVE ROSTER", type="primary", use_container_width=True, key="save_btn", help="save_roster_btn"):
                     with st.spinner("Saving..."):
                         sheet = get_sheet()
                         if sheet:
-                            # 1. Prepare Timestamp
                             ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
                             
-                            # 2. Re-Confirm Slots (Using the logic from sidebar to ensure accuracy)
-                            # (We already have 'roster_slots' calculated above in sidebar logic)
-                            
-                            # 3. Calculate Multipliers for each slot
-                            # Helper to safely get multiplier
                             def get_mult(p_name):
                                 return player_multipliers.get(p_name, 1.0) if p_name else 1.0
 
@@ -713,7 +696,6 @@ def war_room_page():
                                 roster_slots.get('FLX2', ''),
                                 roster_slots.get('K', ''),
                                 roster_slots.get('DEF', ''),
-                                # Multipliers
                                 get_mult(roster_slots.get('QB')),
                                 get_mult(roster_slots.get('RB1')),
                                 get_mult(roster_slots.get('RB2')),
@@ -726,11 +708,9 @@ def war_room_page():
                                 get_mult(roster_slots.get('DEF'))
                             ]
                             
-                            # Append to Sheet1
                             sheet.append_row(row_data)
                             st.success(f"Week {CURRENT_WEEK} Saved at {ts} (UTC)")
             else: 
-                # CSS handles the RED coloring
                 st.button("Roster Invalid", disabled=True, use_container_width=True)
 
 # --- 9. ROUTER ---
@@ -741,6 +721,7 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
+
 
 
 
