@@ -378,7 +378,13 @@ def login_page():
             | **PAT Made** | 1 pt |
             | **FG Missed** | -3 pts |
             | **PAT Missed** | -3 pts |
-            | **Defense TD** | 6 pts |
+            | **DEF TD** | 6 pts |
+            | **DEF Sack** | 1 pt |
+            | **DEF INT** | 3 pt |
+            | **DEF Fumble Recovery** | 3 pt |
+            | **DEF Safety** | 5 pt |
+            | **DEF Blocked Kick** | 3 pt |
+            | **DEF 4th Down Stop** | 1 pt |
             | **0 Pts Allowed** | 12 pts |
             | **1-6 Pts Allowed** | 9 pts |
             | **7-13 Pts Allowed** | 6 pts |
@@ -386,9 +392,6 @@ def login_page():
             | **21-27 Pts Allowed** | 0 pts |
             | **28-34 Pts Allowed** | -3 pts |
             | **35+ Pts Allowed** | -6 pts |
-            | **4th Down Stop** | 1 pt |
-            | **DEF Sack** | 1 pt |
-            | **DEF INT** | 3 pt |
             """)
 
 # --- 7. LEADERBOARD PAGE ---
@@ -723,6 +726,7 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
+
 
 
 
