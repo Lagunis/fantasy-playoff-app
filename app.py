@@ -335,8 +335,8 @@ def login_page():
             * **Objective:** The Manager with the **Highest Cumulative Total Points** at the end of the Super Bowl wins.
             * **Player Pool:** Players are **NOT unique**. Multiple managers can own the same player (e.g., everyone can start Josh Allen).
             * **Weekly Drafting:** You select a fresh lineup every week. You can drop players and pick them back up later freely.
-            * **As just a quick and dirty DIY site, we will not have some features such as automated roster locking or live scoring.
-            * **Managers can update their rosters up until the start of each individual player's game.
+            * As just a quick and dirty DIY site, we will not have some features such as automated roster locking or live scoring.
+            * Managers can update their rosters up until the start of each individual player's game.
             
              ### 💰 Stakes & Payouts
             * **Entry Fee:** **$40** per manager.
@@ -371,8 +371,8 @@ def login_page():
             | **Fumble Lost** | -3 pts |
             | **Fumble Rec. TD** | 6 pts |
             | **Safety Taken (Rush/Rec.)** | -2 pts |
-            | **Punt Return (Over 10 yards)** | 1 pt per 10 yds |
-            | **Kick Return (Over 20 yards)** | 1 pt per 10 yds |
+            | **Punt Return (If over 10 yards)** | 0.1 pt per yd over 10 |
+            | **Kick Return (If over 20 yards)** | 0.1 pt per yd over 20 |
             | **FG Made** | 3 pts |
             | **FGM Yard Over 30** | 0.1 pts |
             | **PAT Made** | 1 pt |
@@ -723,6 +723,7 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
+
 
 
 
