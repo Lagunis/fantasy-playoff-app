@@ -15,37 +15,7 @@ CURRENT_WEEK = 2
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
 BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
-The error KeyError: 'Manager' means that the app tried to find a column named "Manager" in your player_mult_wk2.csv file, but it could not find it.
 
-This usually happens for one of three reasons:
-
-Typo/Case Sensitivity: The column in your CSV is named "manager" (lowercase) or "Manager Name", but the code specifically looks for "Manager".
-
-Hidden Spaces: The column header in the CSV is actually "Manager " (with a trailing space).
-
-Different Delimiters: Sometimes CSVs saved on Mac/Excel use semicolons ; instead of commas ,, which mashes all columns into one.
-
-The Fix
-I have updated the code to automatically clean column names (removing spaces) and to check if the column exists before crashing. If it can't find "Manager", it will now show you a helpful error message in the sidebar listing the columns it did find, instead of crashing the whole app.
-
-Replace your app.py with this version:
-
-Python
-
-import streamlit as st
-import pandas as pd
-import gspread
-import hashlib
-import os
-from datetime import datetime, timezone
-
-st.set_page_config(layout="wide", page_title="Champions League")
-
-# --- ⚙️ COMMISSIONER CONTROLS ⚙️ ---
-CURRENT_WEEK = 2 
-
-# --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
-BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/YOUR_USERNAME_HERE/fantasy-playoff-app/main/football_intro.png"
 
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
@@ -745,3 +715,4 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
+
