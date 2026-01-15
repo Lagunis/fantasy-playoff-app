@@ -321,8 +321,8 @@ def login_page():
             * **Player Pool:** Players are **NOT unique**.
             
             ### 💰 Stakes & Payouts
-            * **Entry Fee:** **$50**.
-            * **Payout:** Top 3 (if 8+ players) or Top 2 (if <8 players).
+            * **Entry Fee:** **$40**.
+            * **Payout:** **9 total entries for 360.  1st = 180, 2nd = 120, 3rd = 60**
             
             ### 🚀 The Multiplier Strategy
             Start the same player consecutively to boost their score.
@@ -334,40 +334,7 @@ def login_page():
             ### 📋 Roster (10 Players)
             1 QB, 2 RB, 2 WR, 1 TE, 2 FLEX, 1 K, 1 DEF.
 
-            ### 🏈 Scoring Settings
-            | Stat | Points |
-            | :--- | :--- |
-            | **Passing TD** | 6 pts |
-            | **2 PT Conversion** | 2 pts |
-            | **Passing Yards** | 1 pt per 30 yds |
-            | **Interception** | -3 pt |
-            | **Pick 6** | -3 pt |
-            | **QB Sack Taken** | -1 pt |
-            | **Rushing/Rec TD** | 6 pts |
-            | **2 PT Conversion** | 2 pts |
-            | **Rushing/Rec Yards** | 1 pt per 10 yds |
-            | **Reception** | 0.5 pts (Half-PPR) |
-            | **Fumble Lost** | -3 pts |
-            | **Fumble Rec. TD** | 6 pts |
-            | **Safety Taken (Rush/Rec.)** | -2 pts |
-            | **Punt Return (Over 10 yards)** | 1 pt per 10 yds |
-            | **Kick Return (Over 20 yards)** | 1 pt per 10 yds |
-            | **FG Made** | 3 pts |
-            | **FGM Yard Over 30** | 0.1 pts |
-            | **PAT Made** | 1 pt |
-            | **FG Missed** | -3 pts |
-            | **PAT Missed** | -3 pts |
-            | **Defense TD** | 6 pts |
-            | **0 Pts Allowed** | 12 pts |
-            | **1-6 Pts Allowed** | 9 pts |
-            | **7-13 Pts Allowed** | 6 pts |
-            | **14-20 Pts Allowed** | 3 pts |
-            | **21-27 Pts Allowed** | 0 pts |
-            | **28-34 Pts Allowed** | -3 pts |
-            | **35+ Pts Allowed** | -6 pts |
-            | **4th Down Stop** | 1 pt |
-            | **DEF Sack** | 1 pt |
-            | **DEF INT** | 3 pt |
+            ### For Scoring and Standings, please see Google Sheets
             """)
 
 # --- 7. LEADERBOARD PAGE ---
@@ -722,3 +689,4 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
+
