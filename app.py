@@ -15,6 +15,38 @@ CURRENT_WEEK = 2
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
 BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
+The error KeyError: 'Manager' means that the app tried to find a column named "Manager" in your player_mult_wk2.csv file, but it could not find it.
+
+This usually happens for one of three reasons:
+
+Typo/Case Sensitivity: The column in your CSV is named "manager" (lowercase) or "Manager Name", but the code specifically looks for "Manager".
+
+Hidden Spaces: The column header in the CSV is actually "Manager " (with a trailing space).
+
+Different Delimiters: Sometimes CSVs saved on Mac/Excel use semicolons ; instead of commas ,, which mashes all columns into one.
+
+The Fix
+I have updated the code to automatically clean column names (removing spaces) and to check if the column exists before crashing. If it can't find "Manager", it will now show you a helpful error message in the sidebar listing the columns it did find, instead of crashing the whole app.
+
+Replace your app.py with this version:
+
+Python
+
+import streamlit as st
+import pandas as pd
+import gspread
+import hashlib
+import os
+from datetime import datetime, timezone
+
+st.set_page_config(layout="wide", page_title="Champions League")
+
+# --- ⚙️ COMMISSIONER CONTROLS ⚙️ ---
+CURRENT_WEEK = 2 
+
+# --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
+BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/YOUR_USERNAME_HERE/fantasy-playoff-app/main/football_intro.png"
+
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
@@ -321,20 +353,53 @@ def login_page():
             * **Player Pool:** Players are **NOT unique**.
             
             ### 💰 Stakes & Payouts
-            * **Entry Fee:** **$40**
-            * **Payout:** **9 entries for 360.  1st = 180, 2nd = 120, 3rd = 60**
+            * **Entry Fee:** **$50**.
+            * **Payout:** Top 3 (if 8+ players) or Top 2 (if <8 players).
             
             ### 🚀 The Multiplier Strategy
             Start the same player consecutively to boost their score.
             * **Week 1:** 100% (1.0x)
-            * **Week 2 Streak:** 125% (1.25x)
-            * **Week 3 Streak:** 150% (1.5x)
-            * **Week 4 Streak:** 200% (2.0x)
+            * **Week 2 Streak:** 110% (1.1x)
+            * **Week 3 Streak:** 125% (1.25x)
+            * **Week 4 Streak:** 150% (1.5x)
 
             ### 📋 Roster (10 Players)
             1 QB, 2 RB, 2 WR, 1 TE, 2 FLEX, 1 K, 1 DEF.
 
-            ### See Google Sheets for Latest Scoring and Standings:  https://docs.google.com/spreadsheets/d/1CLM-KLvB86CPj977xjyOz2mGc4HlYcHDGHa_j0Y9318/edit?usp=sharing
+            ### 🏈 Scoring Settings
+            | Stat | Points |
+            | :--- | :--- |
+            | **Passing TD** | 6 pts |
+            | **2 PT Conversion** | 2 pts |
+            | **Passing Yards** | 1 pt per 30 yds |
+            | **Interception** | -3 pt |
+            | **Pick 6** | -3 pt |
+            | **QB Sack Taken** | -1 pt |
+            | **Rushing/Rec TD** | 6 pts |
+            | **2 PT Conversion** | 2 pts |
+            | **Rushing/Rec Yards** | 1 pt per 10 yds |
+            | **Reception** | 0.5 pts (Half-PPR) |
+            | **Fumble Lost** | -3 pts |
+            | **Fumble Rec. TD** | 6 pts |
+            | **Safety Taken (Rush/Rec.)** | -2 pts |
+            | **Punt Return (Over 10 yards)** | 1 pt per 10 yds |
+            | **Kick Return (Over 20 yards)** | 1 pt per 10 yds |
+            | **FG Made** | 3 pts |
+            | **FGM Yard Over 30** | 0.1 pts |
+            | **PAT Made** | 1 pt |
+            | **FG Missed** | -3 pts |
+            | **PAT Missed** | -3 pts |
+            | **Defense TD** | 6 pts |
+            | **0 Pts Allowed** | 12 pts |
+            | **1-6 Pts Allowed** | 9 pts |
+            | **7-13 Pts Allowed** | 6 pts |
+            | **14-20 Pts Allowed** | 3 pts |
+            | **21-27 Pts Allowed** | 0 pts |
+            | **28-34 Pts Allowed** | -3 pts |
+            | **35+ Pts Allowed** | -6 pts |
+            | **4th Down Stop** | 1 pt |
+            | **DEF Sack** | 1 pt |
+            | **DEF INT** | 3 pt |
             """)
 
 # --- 7. LEADERBOARD PAGE ---
@@ -386,9 +451,9 @@ def war_room_page():
 
     @st.cache_data
     def load_players():
-        # ROBUST PLAYER LOAD - STRIP WHITESPACE
+        # ROBUST PLAYER LOAD
         df = pd.read_csv('players_wk2.csv')
-        df['name'] = df['name'].astype(str).str.strip() # CLEANING
+        df['name'] = df['name'].astype(str).str.strip() 
         df['display_name'] = df['name'] + " (" + df['team'] + ")"
         return df
         
@@ -396,7 +461,10 @@ def war_room_page():
     def load_multiplier_data():
         if os.path.exists("player_mult_wk2.csv"):
             df = pd.read_csv("player_mult_wk2.csv")
-            # ROBUST MULTIPLIER LOAD - STRIP WHITESPACE & CONVERT TYPES
+            # CLEAN COLUMN HEADERS AND DATA
+            df.columns = df.columns.str.strip()
+            
+            # Ensure "Manager" exists
             if 'Manager' in df.columns: df['Manager'] = df['Manager'].astype(str).str.strip()
             if 'Player' in df.columns: df['Player'] = df['Player'].astype(str).str.strip()
             if 'Mult' in df.columns: df['Mult'] = pd.to_numeric(df['Mult'], errors='coerce').fillna(1.0)
@@ -445,6 +513,10 @@ def war_room_page():
         mult_df = load_multiplier_data()
         
         if not mult_df.empty:
+            if 'Manager' not in mult_df.columns:
+                st.error(f"Error: 'Manager' column not found in CSV. Found: {list(mult_df.columns)}")
+                return {}, mult_df
+            
             manager_data = mult_df[mult_df['Manager'] == manager]
             if not manager_data.empty:
                 mult_map = dict(zip(manager_data['Player'], manager_data['Mult']))
@@ -457,24 +529,23 @@ def war_room_page():
 
     player_multipliers, debug_mult_df = calculate_multipliers_from_csv(owner_name)
 
-    # --- SIDEBAR: TEAM & DEBUG ---
+    # --- SIDEBAR ---
     current_roster_names = st.session_state['my_roster']
-    
     st.sidebar.markdown("## 🛡️ Current Team")
     st.sidebar.divider()
 
-    # --- DEBUG EXPANDER IN SIDEBAR ---
+    # Debug Panel
     with st.sidebar.expander("🛠️ Debug Multipliers"):
-        st.write(f"**Logged in as:** `{owner_name}`")
+        st.write(f"**User:** `{owner_name}`")
         if not debug_mult_df.empty:
             mgr_rows = debug_mult_df[debug_mult_df['Manager'] == owner_name]
             st.write(f"Found {len(mgr_rows)} multiplier rows.")
             if len(mgr_rows) > 0:
                 st.dataframe(mgr_rows[['Player', 'Mult']], hide_index=True)
             else:
-                st.warning("No rows found for this Manager name.")
+                st.warning("No matches. Check spelling in CSV 'Manager' column.")
         else:
-            st.warning("Multiplier CSV is empty or missing.")
+            st.warning("Multiplier CSV is empty or missing columns.")
 
     roster_slots = {} 
     if current_roster_names:
@@ -674,15 +745,3 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
-
-
-
-
-
-
-
-
-
-
-
-
