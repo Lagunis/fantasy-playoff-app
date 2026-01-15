@@ -335,7 +335,7 @@ def login_page():
             
             ### 💰 Stakes & Payouts
             * **Entry Fee:** **$40**
-            * **Payout:** **9 entries for $360.  1st = $180, 2nd = $120, 3rd = $60**
+            * **Payout:** **9 entries for $360.  1st = $180, 2nd = $120, 3rd = $60
             
             ### 🚀 The Multiplier Strategy
             Start the same player consecutively to boost their score.
@@ -689,6 +689,7 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
+
 
 
 
