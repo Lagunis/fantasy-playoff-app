@@ -1,6 +1,5 @@
 # LANDING PAGE IMAGE LINK:  "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
-
 import streamlit as st
 import pandas as pd
 import gspread
@@ -11,10 +10,10 @@ from datetime import datetime, timezone
 st.set_page_config(layout="wide", page_title="Champions League")
 
 # --- ⚙️ COMMISSIONER CONTROLS ⚙️ ---
-CURRENT_WEEK = 1 
+CURRENT_WEEK = 2 
 
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
-BACKGROUND_IMAGE_URL =  "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
+BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
@@ -327,71 +326,28 @@ def login_page():
     st.markdown("<br><br><br><br><br>", unsafe_allow_html=True)
     c_left, c_center, c_right = st.columns([1, 2, 1])
     with c_center:
-       with st.expander("📜 RULES OF THE ARENA (Read Carefully)", expanded=False):
-            # HARDCODED RULES
+        with st.expander("📜 RULES OF THE ARENA (Read Carefully)", expanded=False):
             st.markdown("""
             ### ⚔️ The Format
             * **Duration:** The contest spans all **4 Weeks** of the NFL Playoffs.
-            * **Objective:** The Manager with the **Highest Cumulative Total Points** at the end of the Super Bowl wins.
-            * **Player Pool:** Players are **NOT unique**. Multiple managers can own the same player (e.g., everyone can start Josh Allen).
-            * **Weekly Drafting:** You select a fresh lineup every week. You can drop players and pick them back up later freely.
-            * As just a quick and dirty DIY site, we will not have some features such as automated roster locking or live scoring.
-            * Managers can update their rosters up until the start of each individual player's game.
+            * **Objective:** The Manager with the **Highest Cumulative Total Points** wins.
+            * **Player Pool:** Players are **NOT unique**.
             
-             ### 💰 Stakes & Payouts
-            * **Entry Fee:** **$40** per manager.
-            * **Payout Structure:**
-                * If **8+ Managers** join: Top **3 Places** paid.
-                * If **< 8 Managers** join: Top **2 Places** paid.
+            ### 💰 Stakes & Payouts
+            * **Entry Fee:** **$40**.
+            * **Payout:** 9 entries for $360.  1st = $180, 2nd = $120, 3rd = $60
             
-             ### 🚀 The Multiplier Strategy
-            Loyalty is rewarded. If you start the same player in consecutive weeks, their points are multiplied.
-            * **Player's 1st Week:** 100% Points (1.0x)
-            * **Player's 2nd Straight Week:** 125% Points (1.25x)
-            * **Player's 3rd Straight Week:** 150% Points (1.5x)
-            * **Player's 4th Straight Week:** 200% Points (2.0x)
-            *(Note: If you bench a player for a week and then bring them back for a later week, the streak resets to 1.0x)*
+            ### 🚀 The Multiplier Strategy
+            Start the same player consecutively to boost their score.
+            * **Week 1:** 100% (1.0x)
+            * **Week 2 Streak:** 125% (1.25x)
+            * **Week 3 Streak:** 150% (1.5x)
+            * **Week 4 Streak:** 200% (2.0x)
 
-             ### 📋 Roster (10 Players)
+            ### 📋 Roster (10 Players)
             1 QB, 2 RB, 2 WR, 1 TE, 2 FLEX, 1 K, 1 DEF.
 
-             ### 🏈 Scoring Settings
-            | Stat | Points |
-            | :--- | :--- |
-            | **Passing TD** | 6 pts |
-            | **2 PT Conversion** | 2 pts |
-            | **Passing Yards** | 1 pt per 30 yds |
-            | **Interception** | -3 pt |
-            | **Pick 6** | -3 pt |
-            | **QB Sack Taken** | -1 pt |
-            | **Rushing/Rec TD** | 6 pts |
-            | **2 PT Conversion** | 2 pts |
-            | **Rushing/Rec Yards** | 1 pt per 10 yds |
-            | **Reception** | 0.5 pts (Half-PPR) |
-            | **Fumble Lost** | -3 pts |
-            | **Fumble Rec. TD** | 6 pts |
-            | **Safety Taken (Rush/Rec.)** | -2 pts |
-            | **Punt Return (If over 10 yards)** | 0.1 pt per yd over 10 |
-            | **Kick Return (If over 20 yards)** | 0.1 pt per yd over 20 |
-            | **FG Made** | 3 pts |
-            | **FGM Yard Over 30** | 0.1 pts |
-            | **PAT Made** | 1 pt |
-            | **FG Missed** | -3 pts |
-            | **PAT Missed** | -3 pts |
-            | **DEF TD** | 6 pts |
-            | **DEF Sack** | 1 pt |
-            | **DEF INT** | 3 pt |
-            | **DEF Fumble Recovery** | 3 pt |
-            | **DEF Safety** | 5 pt |
-            | **DEF Blocked Kick** | 3 pt |
-            | **DEF 4th Down Stop** | 1 pt |
-            | **0 Pts Allowed** | 12 pts |
-            | **1-6 Pts Allowed** | 9 pts |
-            | **7-13 Pts Allowed** | 6 pts |
-            | **14-20 Pts Allowed** | 3 pts |
-            | **21-27 Pts Allowed** | 0 pts |
-            | **28-34 Pts Allowed** | -3 pts |
-            | **35+ Pts Allowed** | -6 pts |
+            ### See Google Sheets for Latest Scoring and Standings:  https://docs.google.com/spreadsheets/d/1CLM-KLvB86CPj977xjyOz2mGc4HlYcHDGHa_j0Y9318/edit?usp=sharing
             """)
 
 # --- 7. LEADERBOARD PAGE ---
@@ -406,7 +362,6 @@ def leaderboard_page():
         gc = get_connection()
         sh = gc.open("fantasy_league_db")
         users_df = pd.DataFrame(sh.worksheet("users").get_all_records())
-        # TARGET "rosters" TAB
         scores_df = pd.DataFrame(sh.worksheet("rosters").get_all_records())
     except:
         st.error("Database Connection Failed")
@@ -445,13 +400,23 @@ def war_room_page():
 
     @st.cache_data
     def load_players():
-        df = pd.read_csv('players.csv')
+        # UPDATED: Week 2 Player List
+        df = pd.read_csv('players_wk2.csv')
         df['display_name'] = df['name'] + " (" + df['team'] + ")"
         return df
+        
+    @st.cache_data
+    def load_multiplier_data():
+        # UPDATED: Week 2 Multiplier File
+        # Expected Columns: Manager, Player, Mult
+        if os.path.exists("player_mult_wk2.csv"):
+            return pd.read_csv("player_mult_wk2.csv")
+        return pd.DataFrame()
 
-    try: all_players = load_players()
+    try: 
+        all_players = load_players()
     except: 
-        st.error("No players.csv found")
+        st.error("No players_wk2.csv found")
         st.stop()
 
     # --- AUTO-LOAD LOGIC ---
@@ -553,41 +518,34 @@ def war_room_page():
     st.title(f"🏈 {owner_name}'s War Room")
     st.caption(f"Drafting for: **WEEK {CURRENT_WEEK}**")
 
-    # --- MULTIPLIERS ---
-    def calculate_multipliers(manager, week_num):
-        multipliers = {}
-        for name in all_players['name']: multipliers[name] = 1.0
-        if week_num == 1: return multipliers
-        try:
-            sheet = get_sheet()
-            records = sheet.get_all_records()
-            df = pd.DataFrame(records)
-            if df.empty: return multipliers
-            
-            mgr_df = df[df['Manager'] == manager]
-            
-            def was_in_week(p_name, w):
-                w_df = mgr_df[mgr_df['Week'] == w]
-                if w_df.empty: return False
-                latest = w_df.iloc[-1]
-                cols = ['QB','RB1','RB2','WR1','WR2','TE','FLX1','FLX2','K','DEF']
-                roster_list = [latest[c] for c in cols if c in latest and latest[c]]
-                return p_name in roster_list
-            
-            for name in all_players['name']:
-                streak = 0
-                if was_in_week(name, week_num - 1):
-                    streak = 1
-                    if week_num > 2 and was_in_week(name, week_num - 2):
-                        streak = 2
-                        if week_num > 3 and was_in_week(name, week_num - 3): streak = 3
-                if streak == 1: multipliers[name] = 1.10
-                elif streak == 2: multipliers[name] = 1.25
-                elif streak == 3: multipliers[name] = 1.50
-        except: pass
-        return multipliers
+    # --- CALCULATE MULTIPLIERS (NEW CSV LOGIC) ---
+    def calculate_multipliers_from_csv(manager):
+        mult_map = {}
+        # Load CSV
+        mult_df = load_multiplier_data()
+        
+        if not mult_df.empty:
+            # Normalize Columns (Manager, Player, Mult)
+            # Filter for current manager
+            try:
+                # Handle case variations in column names if necessary, 
+                # but assuming "Manager", "Player", "Mult" are exact.
+                manager_data = mult_df[mult_df['Manager'] == manager]
+                if not manager_data.empty:
+                    # Create dictionary {PlayerName: Multiplier}
+                    mult_map = dict(zip(manager_data['Player'], manager_data['Mult']))
+            except Exception as e:
+                pass # Fallback to empty map if columns don't match
+        
+        # Build Final Map: Default 1.0 if not found
+        final_mults = {}
+        for name in all_players['name']:
+            val = mult_map.get(name, 1.0)
+            final_mults[name] = val
+        return final_mults
 
-    player_multipliers = calculate_multipliers(owner_name, CURRENT_WEEK)
+    player_multipliers = calculate_multipliers_from_csv(owner_name)
+    
     dashboard_placeholder = st.container()
     st.divider()
 
@@ -598,17 +556,18 @@ def war_room_page():
         pos_df['Draft'] = pos_df['name'].isin(st.session_state['my_roster'])
         pos_df['mult'] = pos_df['name'].map(player_multipliers)
         
+        # Updated Name Formatting with Emojis
         def format_name(row):
             base = row['display_name']
             m = row['mult']
-            if m == 1.10: return f"{base} ⚡ 1.1x"
-            elif m == 1.25: return f"{base} 🔥 1.25x"
-            elif m == 1.50: return f"{base} 🚀 1.5x"
+            if m == 1.25: return f"{base} 🔥"
+            elif m == 1.5: return f"{base} 🚀"
+            elif m >= 2.0: return f"{base} 👑"
             else: return base
         
         def format_status(row):
             m = row['mult']
-            if m > 1.0: return f"Active ({int(m*100)}%)"
+            if m > 1.0: return f"Active ({m}x)"
             return "-"
 
         pos_df['ui_name'] = pos_df.apply(format_name, axis=1)
@@ -671,12 +630,15 @@ def war_room_page():
             s6.markdown(f"**DEF**<br>{'✅' if def_==1 else '❌'} {def_}/1", unsafe_allow_html=True)
             if flex > 2: st.error(f"Too many Flex! ({flex}/2)")
         with d3:
+            # RESET BUTTON (Gray/Secondary)
             if st.button("🔄 Reset Roster", use_container_width=True, type="secondary"):
                 st.session_state['my_roster'] = []
                 st.rerun()
 
+            # VALIDITY CHECK BUTTONS
             valid_roster = (qb==1 and rb>=2 and wr>=2 and te>=1 and flex<=2 and k==1 and def_==1 and len(current_selection)==10)
             if valid_roster:
+                # SAVE BUTTON (Green via help ID)
                 if st.button(f"✅ SAVE ROSTER", type="primary", use_container_width=True, key="save_btn", help="save_roster_btn"):
                     with st.spinner("Saving..."):
                         sheet = get_sheet()
@@ -716,6 +678,7 @@ def war_room_page():
                             sheet.append_row(row_data)
                             st.success(f"Week {CURRENT_WEEK} Saved at {ts} (UTC)")
             else: 
+                # CSS handles the RED coloring for disabled buttons
                 st.button("Roster Invalid", disabled=True, use_container_width=True)
 
 # --- 9. ROUTER ---
@@ -726,6 +689,7 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
+
 
 
 
