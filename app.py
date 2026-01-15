@@ -51,7 +51,6 @@ def set_bg_from_url(url):
          
          header {{visibility: hidden;}}
          
-         /* LANDING PAGE TITLE */
          .spartan-blood {{
              font-family: 'Nanum Brush Script', cursive;
              font-size: 130px !important;
@@ -72,7 +71,6 @@ def set_bg_from_url(url):
              margin-top: 5px;
          }}
 
-         /* LANDING PAGE LOGIN BOX */
          div[data-testid="stTabs"] {{
              background-color: rgba(0, 0, 0, 0.80) !important; 
              border: 2px solid #8B0000;
@@ -85,11 +83,9 @@ def set_bg_from_url(url):
          button[data-baseweb="tab"] {{ color: white !important; }}
          div[data-baseweb="tab-highlight"] {{ background-color: #8B0000 !important; }}
          
-         /* LANDING PAGE INPUTS */
          label {{ color: white !important; }}
          input {{ color: black !important; }}
 
-         /* RULES BOX STYLING */
          div[data-testid="stExpander"] {{
              background-color: rgba(15, 15, 15, 0.95) !important;
              border: 1px solid #8B0000 !important;
@@ -101,12 +97,11 @@ def set_bg_from_url(url):
              font-size: 16px !important;
          }}
          div[data-testid="stExpander"] h3 {{
-             color: #FBBF24 !important; /* Gold Headers */
+             color: #FBBF24 !important;
              font-family: 'Cinzel', serif !important;
              margin-top: 15px !important;
          }}
          
-         /* TABLE STYLING WITHIN RULES */
          div[data-testid="stExpander"] table {{
              color: white !important;
              border-collapse: collapse !important;
@@ -121,7 +116,6 @@ def set_bg_from_url(url):
              border-bottom: 1px solid #333 !important;
          }}
          
-         /* LOGIN BUTTONS (Red) */
          div[data-testid="stTabs"] button[kind="primary"] {{
              background-color: #991B1B !important; 
              color: white !important;
@@ -149,25 +143,20 @@ def apply_war_room_style():
             text-shadow: 1px 1px 2px black;
         }
         
-        /* --- BUTTON COLOR CODING --- */
-        
-        /* 1. PURPLE (Active Nav Button) */
         button[kind="primary"] {
-            background-color: #7C3AED !important; /* Violet */
+            background-color: #7C3AED !important;
             color: white !important;
             border: 1px solid #A78BFA !important;
         }
         
-        /* 2. GRAY (Inactive Nav Button / Secondary) */
         button[kind="secondary"] {
-            background-color: #334155 !important; /* Slate 700 */
+            background-color: #334155 !important;
             color: #E2E8F0 !important;
             border: 1px solid #475569 !important;
         }
         
-        /* 3. GREEN (Save Roster Button) - Specific Override */
         button[title="save_roster_btn"] {
-            background-color: #15803d !important; /* Strong Green */
+            background-color: #15803d !important;
             color: white !important;
             border: 1px solid #4ade80 !important;
             font-size: 18px !important;
@@ -176,16 +165,14 @@ def apply_war_room_style():
             background-color: #166534 !important;
         }
         
-        /* 4. RED (Disabled Button = Roster Invalid) */
         button:disabled {
-            background-color: #7F1D1D !important; /* Dark Red */
-            color: #FECACA !important; /* Light Red Text */
+            background-color: #7F1D1D !important;
+            color: #FECACA !important;
             border: 1px solid #B91C1C !important;
             opacity: 1.0 !important;
             cursor: not-allowed;
         }
 
-        /* TABLES & METRICS */
         [data-testid="stDataEditor"] {
             border: 1px solid #334155;
             border-radius: 5px;
@@ -395,26 +382,28 @@ def war_room_page():
 
     def get_sheet():
         gc = get_connection()
-        # TARGET "rosters" TAB
         return gc.open("fantasy_league_db").worksheet("rosters")
 
     @st.cache_data
     def load_players():
-        # UPDATED: Week 2 Player List
+        # ROBUST PLAYER LOAD - STRIP WHITESPACE
         df = pd.read_csv('players_wk2.csv')
+        df['name'] = df['name'].astype(str).str.strip() # CLEANING
         df['display_name'] = df['name'] + " (" + df['team'] + ")"
         return df
         
     @st.cache_data
     def load_multiplier_data():
-        # UPDATED: Week 2 Multiplier File
-        # Expected Columns: Manager, Player, Mult
         if os.path.exists("player_mult_wk2.csv"):
-            return pd.read_csv("player_mult_wk2.csv")
+            df = pd.read_csv("player_mult_wk2.csv")
+            # ROBUST MULTIPLIER LOAD - STRIP WHITESPACE & CONVERT TYPES
+            if 'Manager' in df.columns: df['Manager'] = df['Manager'].astype(str).str.strip()
+            if 'Player' in df.columns: df['Player'] = df['Player'].astype(str).str.strip()
+            if 'Mult' in df.columns: df['Mult'] = pd.to_numeric(df['Mult'], errors='coerce').fillna(1.0)
+            return df
         return pd.DataFrame()
 
-    try: 
-        all_players = load_players()
+    try: all_players = load_players()
     except: 
         st.error("No players_wk2.csv found")
         st.stop()
@@ -432,7 +421,6 @@ def war_room_page():
                 
                 if not user_week_data.empty:
                     latest_entry = user_week_data.iloc[-1]
-                    # RECONSTRUCT LIST FROM COLUMNS
                     cols_to_read = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'TE', 'FLX1', 'FLX2', 'K', 'DEF']
                     restored_roster = []
                     for c in cols_to_read:
@@ -451,14 +439,44 @@ def war_room_page():
         
         st.session_state['roster_loaded'] = True
 
-    # --- SIDEBAR LOGIC ---
+    # --- CALCULATE MULTIPLIERS ---
+    def calculate_multipliers_from_csv(manager):
+        mult_map = {}
+        mult_df = load_multiplier_data()
+        
+        if not mult_df.empty:
+            manager_data = mult_df[mult_df['Manager'] == manager]
+            if not manager_data.empty:
+                mult_map = dict(zip(manager_data['Player'], manager_data['Mult']))
+        
+        final_mults = {}
+        for name in all_players['name']:
+            val = mult_map.get(name, 1.0)
+            final_mults[name] = val
+        return final_mults, mult_df
+
+    player_multipliers, debug_mult_df = calculate_multipliers_from_csv(owner_name)
+
+    # --- SIDEBAR: TEAM & DEBUG ---
     current_roster_names = st.session_state['my_roster']
     
     st.sidebar.markdown("## 🛡️ Current Team")
     st.sidebar.divider()
 
+    # --- DEBUG EXPANDER IN SIDEBAR ---
+    with st.sidebar.expander("🛠️ Debug Multipliers"):
+        st.write(f"**Logged in as:** `{owner_name}`")
+        if not debug_mult_df.empty:
+            mgr_rows = debug_mult_df[debug_mult_df['Manager'] == owner_name]
+            st.write(f"Found {len(mgr_rows)} multiplier rows.")
+            if len(mgr_rows) > 0:
+                st.dataframe(mgr_rows[['Player', 'Mult']], hide_index=True)
+            else:
+                st.warning("No rows found for this Manager name.")
+        else:
+            st.warning("Multiplier CSV is empty or missing.")
+
     roster_slots = {} 
-    
     if current_roster_names:
         roster_df = all_players[all_players['name'].isin(current_roster_names)]
         
@@ -518,34 +536,6 @@ def war_room_page():
     st.title(f"🏈 {owner_name}'s War Room")
     st.caption(f"Drafting for: **WEEK {CURRENT_WEEK}**")
 
-    # --- CALCULATE MULTIPLIERS (NEW CSV LOGIC) ---
-    def calculate_multipliers_from_csv(manager):
-        mult_map = {}
-        # Load CSV
-        mult_df = load_multiplier_data()
-        
-        if not mult_df.empty:
-            # Normalize Columns (Manager, Player, Mult)
-            # Filter for current manager
-            try:
-                # Handle case variations in column names if necessary, 
-                # but assuming "Manager", "Player", "Mult" are exact.
-                manager_data = mult_df[mult_df['Manager'] == manager]
-                if not manager_data.empty:
-                    # Create dictionary {PlayerName: Multiplier}
-                    mult_map = dict(zip(manager_data['Player'], manager_data['Mult']))
-            except Exception as e:
-                pass # Fallback to empty map if columns don't match
-        
-        # Build Final Map: Default 1.0 if not found
-        final_mults = {}
-        for name in all_players['name']:
-            val = mult_map.get(name, 1.0)
-            final_mults[name] = val
-        return final_mults
-
-    player_multipliers = calculate_multipliers_from_csv(owner_name)
-    
     dashboard_placeholder = st.container()
     st.divider()
 
@@ -556,7 +546,6 @@ def war_room_page():
         pos_df['Draft'] = pos_df['name'].isin(st.session_state['my_roster'])
         pos_df['mult'] = pos_df['name'].map(player_multipliers)
         
-        # Updated Name Formatting with Emojis
         def format_name(row):
             base = row['display_name']
             m = row['mult']
@@ -630,15 +619,12 @@ def war_room_page():
             s6.markdown(f"**DEF**<br>{'✅' if def_==1 else '❌'} {def_}/1", unsafe_allow_html=True)
             if flex > 2: st.error(f"Too many Flex! ({flex}/2)")
         with d3:
-            # RESET BUTTON (Gray/Secondary)
             if st.button("🔄 Reset Roster", use_container_width=True, type="secondary"):
                 st.session_state['my_roster'] = []
                 st.rerun()
 
-            # VALIDITY CHECK BUTTONS
             valid_roster = (qb==1 and rb>=2 and wr>=2 and te>=1 and flex<=2 and k==1 and def_==1 and len(current_selection)==10)
             if valid_roster:
-                # SAVE BUTTON (Green via help ID)
                 if st.button(f"✅ SAVE ROSTER", type="primary", use_container_width=True, key="save_btn", help="save_roster_btn"):
                     with st.spinner("Saving..."):
                         sheet = get_sheet()
@@ -678,7 +664,6 @@ def war_room_page():
                             sheet.append_row(row_data)
                             st.success(f"Week {CURRENT_WEEK} Saved at {ts} (UTC)")
             else: 
-                # CSS handles the RED coloring for disabled buttons
                 st.button("Roster Invalid", disabled=True, use_container_width=True)
 
 # --- 9. ROUTER ---
@@ -689,6 +674,7 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
+
 
 
 
