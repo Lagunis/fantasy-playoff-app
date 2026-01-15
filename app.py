@@ -15,7 +15,6 @@ CURRENT_WEEK = 2
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
 BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
-
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
@@ -328,9 +327,9 @@ def login_page():
             ### 🚀 The Multiplier Strategy
             Start the same player consecutively to boost their score.
             * **Week 1:** 100% (1.0x)
-            * **Week 2 Streak:** 110% (1.1x)
-            * **Week 3 Streak:** 125% (1.25x)
-            * **Week 4 Streak:** 150% (1.5x)
+            * **Week 2 Streak:** 125% (1.25x)
+            * **Week 3 Streak:** 150% (1.5x)
+            * **Week 4 Streak:** 200% (2.0x)
 
             ### 📋 Roster (10 Players)
             1 QB, 2 RB, 2 WR, 1 TE, 2 FLEX, 1 K, 1 DEF.
@@ -420,7 +419,6 @@ def war_room_page():
 
     @st.cache_data
     def load_players():
-        # ROBUST PLAYER LOAD
         df = pd.read_csv('players_wk2.csv')
         df['name'] = df['name'].astype(str).str.strip() 
         df['display_name'] = df['name'] + " (" + df['team'] + ")"
@@ -430,10 +428,7 @@ def war_room_page():
     def load_multiplier_data():
         if os.path.exists("player_mult_wk2.csv"):
             df = pd.read_csv("player_mult_wk2.csv")
-            # --- THE FIX: NORMALIZE COLUMN NAMES TO LOWERCASE ---
             df.columns = df.columns.str.strip().str.lower()
-            
-            # Ensure "manager" exists (lowercase)
             if 'manager' in df.columns: df['manager'] = df['manager'].astype(str).str.strip()
             if 'player' in df.columns: df['player'] = df['player'].astype(str).str.strip()
             if 'mult' in df.columns: df['mult'] = pd.to_numeric(df['mult'], errors='coerce').fillna(1.0)
@@ -476,16 +471,15 @@ def war_room_page():
         
         st.session_state['roster_loaded'] = True
 
-    # --- CALCULATE MULTIPLIERS (UPDATED FOR LOWERCASE KEYS) ---
+    # --- CALCULATE MULTIPLIERS ---
     def calculate_multipliers_from_csv(manager):
         mult_map = {}
         mult_df = load_multiplier_data()
         
         if not mult_df.empty:
-            # Check for LOWERCASE 'manager' column
             if 'manager' not in mult_df.columns:
                 st.error(f"Error: 'manager' column not found in CSV. Found: {list(mult_df.columns)}")
-                return {}, mult_df
+                return {}
             
             manager_data = mult_df[mult_df['manager'] == manager]
             if not manager_data.empty:
@@ -495,30 +489,18 @@ def war_room_page():
         for name in all_players['name']:
             val = mult_map.get(name, 1.0)
             final_mults[name] = val
-        return final_mults, mult_df
+        return final_mults
 
-    player_multipliers, debug_mult_df = calculate_multipliers_from_csv(owner_name)
+    player_multipliers = calculate_multipliers_from_csv(owner_name)
 
-    # --- SIDEBAR: TEAM & DEBUG ---
+    # --- SIDEBAR: TEAM ---
     current_roster_names = st.session_state['my_roster']
     
     st.sidebar.markdown("## 🛡️ Current Team")
     st.sidebar.divider()
 
-    # Debug Panel
-    with st.sidebar.expander("🛠️ Debug Multipliers"):
-        st.write(f"**User:** `{owner_name}`")
-        if not debug_mult_df.empty:
-            mgr_rows = debug_mult_df[debug_mult_df['manager'] == owner_name]
-            st.write(f"Found {len(mgr_rows)} multiplier rows.")
-            if len(mgr_rows) > 0:
-                st.dataframe(mgr_rows[['player', 'mult']], hide_index=True)
-            else:
-                st.warning("No matches. Check spelling in CSV 'manager' column.")
-        else:
-            st.warning("Multiplier CSV is empty or missing columns.")
-
     roster_slots = {} 
+    
     if current_roster_names:
         roster_df = all_players[all_players['name'].isin(current_roster_names)]
         
@@ -542,11 +524,25 @@ def war_room_page():
         roster_slots['K'] = ks[0] if len(ks) > 0 else ""
         roster_slots['DEF'] = defs[0] if len(defs) > 0 else ""
 
+        # VISIBILITY FIX: Custom HTML for Sidebar with Multipliers
         def render_slot_sidebar(label, val):
             display_val = val if val else "---"
+            
+            # Get multiplier for this specific player
+            mult_val = player_multipliers.get(val, 1.0) if val else 1.0
+            mult_str = f"{mult_val}x" if val else "-"
+            
+            # Color code active multipliers
+            mult_style = "color: #94A3B8;" # Gray default
+            if mult_val > 1.0:
+                mult_style = "color: #22c55e; font-weight: 900;" # Bright Green
+
             st.sidebar.markdown(f"""
             <div style="margin-bottom: 5px;">
-                <span style="color: #94A3B8; font-size: 12px; font-weight: bold;">{label}</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                    <span style="color: #94A3B8; font-size: 11px; font-weight: bold;">{label}</span>
+                    <span style="{mult_style} font-size: 11px;">{mult_str}</span>
+                </div>
                 <div style="background-color: #F1F5F9; color: #111827; padding: 8px; border-radius: 4px; font-weight: 800; font-size: 14px; border: 1px solid #CBD5E1;">
                     {display_val}
                 </div>
@@ -577,6 +573,16 @@ def war_room_page():
     # --- MAIN CONTENT ---
     st.title(f"🏈 {owner_name}'s War Room")
     st.caption(f"Drafting for: **WEEK {CURRENT_WEEK}**")
+
+    # --- LEGEND ---
+    st.markdown("""
+    <div style="background-color: #1E293B; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 25px; display: flex; justify-content: center; gap: 20px;">
+        <span style="color: #E2E8F0; font-weight: bold;">MULTIPLIER KEY:</span>
+        <span style="color: #FBBF24; font-weight: bold;">🔥 1.25x</span>
+        <span style="color: #F472B6; font-weight: bold;">🚀 1.50x</span>
+        <span style="color: #60A5FA; font-weight: bold;">👑 2.00x</span>
+    </div>
+    """, unsafe_allow_html=True)
 
     dashboard_placeholder = st.container()
     st.divider()
