@@ -16,7 +16,6 @@ CURRENT_WEEK = 2
 BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
 
 
-
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
@@ -431,13 +430,13 @@ def war_room_page():
     def load_multiplier_data():
         if os.path.exists("player_mult_wk2.csv"):
             df = pd.read_csv("player_mult_wk2.csv")
-            # CLEAN COLUMN HEADERS AND DATA
-            df.columns = df.columns.str.strip()
+            # --- THE FIX: NORMALIZE COLUMN NAMES TO LOWERCASE ---
+            df.columns = df.columns.str.strip().str.lower()
             
-            # Ensure "Manager" exists
-            if 'Manager' in df.columns: df['Manager'] = df['Manager'].astype(str).str.strip()
-            if 'Player' in df.columns: df['Player'] = df['Player'].astype(str).str.strip()
-            if 'Mult' in df.columns: df['Mult'] = pd.to_numeric(df['Mult'], errors='coerce').fillna(1.0)
+            # Ensure "manager" exists (lowercase)
+            if 'manager' in df.columns: df['manager'] = df['manager'].astype(str).str.strip()
+            if 'player' in df.columns: df['player'] = df['player'].astype(str).str.strip()
+            if 'mult' in df.columns: df['mult'] = pd.to_numeric(df['mult'], errors='coerce').fillna(1.0)
             return df
         return pd.DataFrame()
 
@@ -477,19 +476,20 @@ def war_room_page():
         
         st.session_state['roster_loaded'] = True
 
-    # --- CALCULATE MULTIPLIERS ---
+    # --- CALCULATE MULTIPLIERS (UPDATED FOR LOWERCASE KEYS) ---
     def calculate_multipliers_from_csv(manager):
         mult_map = {}
         mult_df = load_multiplier_data()
         
         if not mult_df.empty:
-            if 'Manager' not in mult_df.columns:
-                st.error(f"Error: 'Manager' column not found in CSV. Found: {list(mult_df.columns)}")
+            # Check for LOWERCASE 'manager' column
+            if 'manager' not in mult_df.columns:
+                st.error(f"Error: 'manager' column not found in CSV. Found: {list(mult_df.columns)}")
                 return {}, mult_df
             
-            manager_data = mult_df[mult_df['Manager'] == manager]
+            manager_data = mult_df[mult_df['manager'] == manager]
             if not manager_data.empty:
-                mult_map = dict(zip(manager_data['Player'], manager_data['Mult']))
+                mult_map = dict(zip(manager_data['player'], manager_data['mult']))
         
         final_mults = {}
         for name in all_players['name']:
@@ -499,8 +499,9 @@ def war_room_page():
 
     player_multipliers, debug_mult_df = calculate_multipliers_from_csv(owner_name)
 
-    # --- SIDEBAR ---
+    # --- SIDEBAR: TEAM & DEBUG ---
     current_roster_names = st.session_state['my_roster']
+    
     st.sidebar.markdown("## 🛡️ Current Team")
     st.sidebar.divider()
 
@@ -508,12 +509,12 @@ def war_room_page():
     with st.sidebar.expander("🛠️ Debug Multipliers"):
         st.write(f"**User:** `{owner_name}`")
         if not debug_mult_df.empty:
-            mgr_rows = debug_mult_df[debug_mult_df['Manager'] == owner_name]
+            mgr_rows = debug_mult_df[debug_mult_df['manager'] == owner_name]
             st.write(f"Found {len(mgr_rows)} multiplier rows.")
             if len(mgr_rows) > 0:
-                st.dataframe(mgr_rows[['Player', 'Mult']], hide_index=True)
+                st.dataframe(mgr_rows[['player', 'mult']], hide_index=True)
             else:
-                st.warning("No matches. Check spelling in CSV 'Manager' column.")
+                st.warning("No matches. Check spelling in CSV 'manager' column.")
         else:
             st.warning("Multiplier CSV is empty or missing columns.")
 
@@ -715,4 +716,3 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
-
