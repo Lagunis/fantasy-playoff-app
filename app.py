@@ -10,10 +10,11 @@ from datetime import datetime, timezone
 st.set_page_config(layout="wide", page_title="Champions League")
 
 # --- ⚙️ COMMISSIONER CONTROLS ⚙️ ---
-CURRENT_WEEK = 2 
+CURRENT_WEEK = 3
 
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
 BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
+
 
 # --- 1. SECURITY & DATABASE SETUP ---
 def make_hashes(password):
@@ -386,15 +387,15 @@ def war_room_page():
 
     @st.cache_data
     def load_players():
-        df = pd.read_csv('players_wk2.csv')
+        df = pd.read_csv('players_wk3.csv')
         df['name'] = df['name'].astype(str).str.strip() 
         df['display_name'] = df['name'] + " (" + df['team'] + ")"
         return df
         
     @st.cache_data
     def load_multiplier_data():
-        if os.path.exists("player_mult_wk2.csv"):
-            df = pd.read_csv("player_mult_wk2.csv")
+        if os.path.exists("player_mult_wk3.csv"):
+            df = pd.read_csv("player_mult_wk3.csv")
             df.columns = df.columns.str.strip().str.lower()
             if 'manager' in df.columns: df['manager'] = df['manager'].astype(str).str.strip()
             if 'player' in df.columns: df['player'] = df['player'].astype(str).str.strip()
@@ -404,7 +405,7 @@ def war_room_page():
 
     try: all_players = load_players()
     except: 
-        st.error("No players_wk2.csv found")
+        st.error("No players_wk3.csv found")
         st.stop()
 
     # --- AUTO-LOAD LOGIC ---
@@ -438,17 +439,21 @@ def war_room_page():
         
         st.session_state['roster_loaded'] = True
 
-    # --- CALCULATE MULTIPLIERS ---
+    # --- CALCULATE MULTIPLIERS (ROBUST MATCHING) ---
     def calculate_multipliers_from_csv(manager):
         mult_map = {}
         mult_df = load_multiplier_data()
         
         if not mult_df.empty:
             if 'manager' not in mult_df.columns:
-                st.error(f"Error: 'manager' column not found in CSV. Found: {list(mult_df.columns)}")
                 return {}
             
-            manager_data = mult_df[mult_df['manager'] == manager]
+            # NORMALIZATION: Lowercase both the logged-in name and the csv column for matching
+            target_manager = manager.lower().strip()
+            mult_df['manager_clean'] = mult_df['manager'].str.lower().str.strip()
+            
+            manager_data = mult_df[mult_df['manager_clean'] == target_manager]
+            
             if not manager_data.empty:
                 mult_map = dict(zip(manager_data['player'], manager_data['mult']))
         
@@ -689,4 +694,3 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
-
