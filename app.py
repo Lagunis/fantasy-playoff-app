@@ -569,9 +569,10 @@ def war_room_page():
         def format_name(row):
             base = row['display_name']
             m = row['mult']
-            if m == 1.25: return f"{base} 🔥"
-            elif m == 1.5: return f"{base} 🚀"
-            elif m >= 2.0: return f"{base} 👑"
+            # --- EMOJI FIRST UPDATE ---
+            if m == 1.25: return f"🔥 {base}"
+            elif m == 1.5: return f"🚀 {base}"
+            elif m >= 2.0: return f"👑 {base}"
             else: return base
         
         def format_status(row):
@@ -585,6 +586,7 @@ def war_room_page():
         
         st.subheader(header_text)
         
+        # ADDED USE_CONTAINER_WIDTH=TRUE
         edited_df = st.data_editor(
             pos_df[['Draft', 'ui_name', 'status']], 
             key=f"editor_{position_name}", 
@@ -595,19 +597,28 @@ def war_room_page():
                 "status": st.column_config.TextColumn("Bonus", width="small")
             },
             disabled=["ui_name", "status"], 
-            height=450
+            height=450,
+            use_container_width=True 
         )
         
         selected_ui_names = edited_df[edited_df['Draft'] == True]['ui_name'].tolist()
         return pos_df[pos_df['ui_name'].isin(selected_ui_names)]['name'].tolist()
 
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-    with c1: sel_qb = render_position_table("QB", "QB (Pick 1)")
-    with c2: sel_rb = render_position_table("RB", "RB (Pick 2-4)")
-    with c3: sel_wr = render_position_table("WR", "WR (Pick 2-4)")
-    with c4: sel_te = render_position_table("TE", "TE (Pick 1-3)")
-    with c5: sel_k = render_position_table("K", "K (Pick 1)")
-    with c6: sel_def = render_position_table("DEF", "DEF (Pick 1)")
+    # --- NEW LAYOUT: 2 ROWS of 3 COLUMNS ---
+    
+    # Row 1: QB, RB, WR
+    r1_c1, r1_c2, r1_c3 = st.columns(3)
+    with r1_c1: sel_qb = render_position_table("QB", "QB (Pick 1)")
+    with r1_c2: sel_rb = render_position_table("RB", "RB (Pick 2-4)")
+    with r1_c3: sel_wr = render_position_table("WR", "WR (Pick 2-4)")
+
+    st.write("") # Spacer
+
+    # Row 2: TE, K, DEF
+    r2_c1, r2_c2, r2_c3 = st.columns(3)
+    with r2_c1: sel_te = render_position_table("TE", "TE (Pick 1-3)")
+    with r2_c2: sel_k = render_position_table("K", "K (Pick 1)")
+    with r2_c3: sel_def = render_position_table("DEF", "DEF (Pick 1)")
 
     current_selection = sel_qb + sel_rb + sel_wr + sel_te + sel_k + sel_def
     
