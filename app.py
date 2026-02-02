@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 st.set_page_config(layout="wide", page_title="Champions League")
 
 # --- ⚙️ COMMISSIONER CONTROLS ⚙️ ---
-CURRENT_WEEK = 3
+CURRENT_WEEK = 4
 
 # --- ⚠️ PASTE YOUR GITHUB IMAGE LINK HERE ⚠️ ---
 BACKGROUND_IMAGE_URL = "https://raw.githubusercontent.com/Lagunis/fantasy-playoff-app/refs/heads/main/football_intro.png"
@@ -707,3 +707,4 @@ if st.session_state['logged_in']:
         leaderboard_page()
 else:
     login_page()
+
