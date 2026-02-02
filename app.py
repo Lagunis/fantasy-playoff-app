@@ -387,15 +387,17 @@ def war_room_page():
 
     @st.cache_data
     def load_players():
-        df = pd.read_csv('players_wk3.csv')
+        # UPDATED: Week 4 Player List
+        df = pd.read_csv('players_wk4.csv')
         df['name'] = df['name'].astype(str).str.strip() 
         df['display_name'] = df['name'] + " (" + df['team'] + ")"
         return df
         
     @st.cache_data
     def load_multiplier_data():
-        if os.path.exists("player_mult_wk3.csv"):
-            df = pd.read_csv("player_mult_wk3.csv")
+        # UPDATED: Week 4 Multiplier File
+        if os.path.exists("player_mult_wk4.csv"):
+            df = pd.read_csv("player_mult_wk4.csv")
             df.columns = df.columns.str.strip().str.lower()
             if 'manager' in df.columns: df['manager'] = df['manager'].astype(str).str.strip()
             if 'player' in df.columns: df['player'] = df['player'].astype(str).str.strip()
@@ -405,7 +407,7 @@ def war_room_page():
 
     try: all_players = load_players()
     except: 
-        st.error("No players_wk3.csv found")
+        st.error("No players_wk4.csv found")
         st.stop()
 
     # --- AUTO-LOAD LOGIC ---
